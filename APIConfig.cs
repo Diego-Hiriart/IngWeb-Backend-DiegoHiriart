@@ -7,8 +7,9 @@ namespace WebAPI_DiegoHiriart
     public static class APIConfig
     {
         private static string connectionString =
-        @"Data Source=DIEGOHL\SQLDEV;Database=IngWebDev;Integrated Security=SSPI";
-        //@"Data Source=DIEGOHL\SQLEXPR;Database=IngWebPrd;Integrated Security=SSPI"
+            @"Host=localhost;Username=postgres;Password=admin01;Database=IngWeb";
+        //@"Data Source=DIEGOHL\SQLDEV;Database=IngWebDev;Integrated Security=SSPI";
+        //@"Data Source=DIEGOHL\SQLEXPR;Database=IngWebPrd;Integrated Security=SSPI;"
 
         private static string token = "A_super secret key-for the T0kenS";//A key to create the login tokens
 

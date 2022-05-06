@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.Data;
-using System.Data.SqlClient;
+using Npgsql;
 using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -22,22 +22,22 @@ namespace WebAPI_DiegoHiriart.Controllers
         public async Task<ActionResult<string>> Login(Credentials request)
         {
             string db = APIConfig.ConnectionString;
-            //COLLATE SQL_Latin1_General_CP1_CS_AS allows case sentitive compare
-            string checkUserExists = "SELECT * FROM Users WHERE Email = @0 OR Username = @0 COLLATE SQL_Latin1_General_CP1_CS_AS";
+            //COLLATE SQL_Latin1_General_CP1_CS_AS allows case sentitive compare, not needed for PostgreSQL
+            string checkUserExists = "SELECT * FROM users WHERE email = @0 OR username = @0";
             User user = new User();
             try
             {
                 bool userFound = false;
-                using (SqlConnection conn = new SqlConnection(db))
+                using (NpgsqlConnection conn = new NpgsqlConnection(db))
                 {
                     conn.Open();
                     if (conn.State == ConnectionState.Open)
                     {
-                        using (SqlCommand cmd = conn.CreateCommand())
+                        using (NpgsqlCommand cmd = conn.CreateCommand())
                         {
                             cmd.CommandText = checkUserExists;
                             cmd.Parameters.AddWithValue("@0", request.UserEmail);//Replace the parameteres of the string
-                            using (SqlDataReader reader = cmd.ExecuteReader())
+                            using (NpgsqlDataReader reader = cmd.ExecuteReader())
                             {
                                 userFound = reader.HasRows;//To know if the user exists there must be rows in the reader if something was found)
                                 while (reader.Read())

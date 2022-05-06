@@ -1,7 +1,7 @@
 ﻿//Diego Hiriart Leon
 using Microsoft.AspNetCore.Mvc;
 using System.Data;
-using System.Data.SqlClient;
+using Npgsql;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using WebAPI_DiegoHiriart.Models;
@@ -12,13 +12,13 @@ namespace WebAPI_DiegoHiriart.Controllers
 {
     [ApiController]
     [Route("api/users")]
-    public class UserController : ControllerBase
+    public class UsersController : ControllerBase
     {
         [HttpPost]//Maps method to Post request
         public async Task<ActionResult<List<UserDto>>> CreateUser(UserDto user)
         {
             string db = APIConfig.ConnectionString;
-            string createUser = "INSERT INTO Users(Email, Username, PasswordHash, PasswordSalt) values(@0, @1, @2, @3)";
+            string createUser = "INSERT INTO users(email, username, passwordhash, passwordsalt) VALUES(@0, @1, @2, @3)";
             if (string.IsNullOrEmpty(user.Email) || string.IsNullOrEmpty(user.Password)
                 || string.IsNullOrEmpty(user.Username))//Do no create if data not complete
             {
@@ -29,12 +29,12 @@ namespace WebAPI_DiegoHiriart.Controllers
                 passwordHashes[0], passwordHashes[1]);
             try
             {
-                using (SqlConnection conn = new SqlConnection(db))
+                using (NpgsqlConnection conn = new NpgsqlConnection(db))
                 {
                     conn.Open();
                     if (conn.State == ConnectionState.Open)
                     {
-                        using (SqlCommand cmd = conn.CreateCommand())
+                        using (NpgsqlCommand cmd = conn.CreateCommand())
                         {
                             cmd.CommandText = createUser;
                             cmd.Parameters.AddWithValue("@0", userDb.Email);//Replace the parameteres of the string
@@ -60,18 +60,18 @@ namespace WebAPI_DiegoHiriart.Controllers
         {
             List<UserDto> users = new List<UserDto>();
             string db = APIConfig.ConnectionString;
-            string readUsers = "SELECT UserID, Email, Username FROM Users";
+            string readUsers = "SELECT userid, email, username FROM users";
             try
             {
-                using (SqlConnection conn = new SqlConnection(db))
+                using (NpgsqlConnection conn = new NpgsqlConnection(db))
                 {
                     conn.Open();
                     if (conn.State == ConnectionState.Open)
                     {
-                        using (SqlCommand cmd = conn.CreateCommand())
+                        using (NpgsqlCommand cmd = conn.CreateCommand())
                         {
                             cmd.CommandText = readUsers;
-                            using (SqlDataReader reader = cmd.ExecuteReader())
+                            using (NpgsqlDataReader reader = cmd.ExecuteReader())
                             {
                                 while (reader.Read())
                                 {
@@ -100,19 +100,19 @@ namespace WebAPI_DiegoHiriart.Controllers
         {
             List<UserDto> users = new List<UserDto>();
             string db = APIConfig.ConnectionString;
-            string readUsers = "SELECT UserId, Email, Username FROM Users WHERE Email = @0";
+            string readUsers = "SELECT userid, email, username FROM users WHERE email = @0";
             try
             {
-                using (SqlConnection conn = new SqlConnection(db))
+                using (NpgsqlConnection conn = new NpgsqlConnection(db))
                 {
                     conn.Open();
                     if (conn.State == ConnectionState.Open)
                     {
-                        using (SqlCommand cmd = conn.CreateCommand())
+                        using (NpgsqlCommand cmd = conn.CreateCommand())
                         {
                             cmd.CommandText = readUsers;
                             cmd.Parameters.AddWithValue("@0", email);
-                            using (SqlDataReader reader = cmd.ExecuteReader())
+                            using (NpgsqlDataReader reader = cmd.ExecuteReader())
                             {
                                 while (reader.Read())
                                 {
@@ -145,19 +145,19 @@ namespace WebAPI_DiegoHiriart.Controllers
         {
             List<UserDto> users = new List<UserDto>();
             string db = APIConfig.ConnectionString;
-            string readUsers = "SELECT UserId, Email, Username FROM Users WHERE Email LIKE @0";//WHERE string LIKE %substring%
+            string readUsers = "SELECT userid, email, username FROM users WHERE email LIKE @0";//WHERE string LIKE %substring%
             try
             {
-                using (SqlConnection conn = new SqlConnection(db))
+                using (NpgsqlConnection conn = new NpgsqlConnection(db))
                 {
                     conn.Open();
                     if (conn.State == ConnectionState.Open)
                     {
-                        using (SqlCommand cmd = conn.CreateCommand())
+                        using (NpgsqlCommand cmd = conn.CreateCommand())
                         {
                             cmd.CommandText = readUsers;
                             cmd.Parameters.AddWithValue("@0", "%"+email+"%");//%substring%
-                            using (SqlDataReader reader = cmd.ExecuteReader())
+                            using (NpgsqlDataReader reader = cmd.ExecuteReader())
                             {
                                 while (reader.Read())
                                 {
@@ -189,7 +189,7 @@ namespace WebAPI_DiegoHiriart.Controllers
         public async Task<IActionResult> UpdateUser(UserDto user)
         {
             string db = APIConfig.ConnectionString;
-            string updateUser = "UPDATE Users SET Email=@0, Username=@1, PasswordHash=@2, PasswordSalt=@3 WHERE UserID = @4";
+            string updateUser = "UPDATE users SET email=@0, username=@1, passwordhash=@2, passwordsalt=@3 WHERE userid = @4";
             if (string.IsNullOrEmpty(user.Email) || string.IsNullOrEmpty(user.Password)
                 || string.IsNullOrEmpty(user.Username))//Do no alter if data not complete
             {
@@ -201,12 +201,12 @@ namespace WebAPI_DiegoHiriart.Controllers
             try
             {
                 int affectedRows = 0;
-                using (SqlConnection conn = new SqlConnection(db))
+                using (NpgsqlConnection conn = new NpgsqlConnection(db))
                 {
                     conn.Open();
                     if (conn.State == ConnectionState.Open)
                     {
-                        using (SqlCommand cmd = conn.CreateCommand())
+                        using (NpgsqlCommand cmd = conn.CreateCommand())
                         {
                             cmd.CommandText = updateUser;
                             cmd.Parameters.AddWithValue("@0", userDb.Email);
@@ -236,16 +236,16 @@ namespace WebAPI_DiegoHiriart.Controllers
         public async Task<IActionResult> DeleteUser(int id)
         {
             string db = APIConfig.ConnectionString;
-            string deleteUser = "DELETE FROM Users WHERE UserID = @0";
+            string deleteUser = "DELETE FROM users WHERE userid = @0";
             try
             {
                 int affectedRows = 0;
-                using (SqlConnection conn = new SqlConnection(db))
+                using (NpgsqlConnection conn = new NpgsqlConnection(db))
                 {
                     conn.Open();
                     if (conn.State == ConnectionState.Open)
                     {
-                        using (SqlCommand cmd = conn.CreateCommand())
+                        using (NpgsqlCommand cmd = conn.CreateCommand())
                         {
                             cmd.CommandText = deleteUser;
                             cmd.Parameters.AddWithValue("@0", id);

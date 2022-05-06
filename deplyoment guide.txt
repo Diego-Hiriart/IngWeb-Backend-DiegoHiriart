@@ -1,0 +1,11 @@
+Add and deploy:
+heroku git:remote -a ing-web-hiriart
+heroku create -b https://github.com/mars/create-react-app.buildpack.git
+git push heroku main
+
+Rename and update remotes:
+heroku apps:rename ingweb-front-hiriart
+git remote rm heroku
+heroku git:remote -a ingweb-front-hiriart
+heroku create -b https://github.com/mars/create-react-app.buildpack.git
+git push heroku main
