@@ -6,6 +6,7 @@ namespace WebAPI_DiegoHiriart
 {
     public static class APIConfig
     {
+        //Here a user with high privileges is used becasue on the free plan for a PostgreSQL from Heroku the user you get ahs no role creation permission
         private static string connectionString =
             "Host=ec2-3-218-171-44.compute-1.amazonaws.com;Port=5432;Username=nfdictzoxksvta;Password=4cd7c7a631740d749cbae126b813d6430c73f5aa2cb1a24bbc85a861c3a75126;" +
             "Database=d2r7gqmss2jjk2";//Heorku changes this periodically
