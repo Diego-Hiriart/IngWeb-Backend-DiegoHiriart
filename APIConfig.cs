@@ -7,7 +7,7 @@ namespace WebAPI_DiegoHiriart
     public static class APIConfig
     {
         private static string connectionString =
-            @"Host=localhost;Username=postgres;Password=admin01;Database=IngWeb";
+            @"Host=localhost;Username=app_user;Password=userpass;Database=IngWeb";
         //@"Data Source=DIEGOHL\SQLDEV;Database=IngWebDev;Integrated Security=SSPI";
         //@"Data Source=DIEGOHL\SQLEXPR;Database=IngWebPrd;Integrated Security=SSPI;"
 
