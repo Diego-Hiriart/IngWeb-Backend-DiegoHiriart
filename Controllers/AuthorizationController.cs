@@ -25,6 +25,7 @@ namespace WebAPI_DiegoHiriart.Controllers
             //COLLATE SQL_Latin1_General_CP1_CS_AS allows case sentitive compare, not needed for PostgreSQL
             string checkUserExists = "SELECT * FROM users WHERE email = @0 OR username = @0";
             User user = new User();
+            bool isAdmin = false;
             try
             {
                 bool userFound = false;
@@ -52,6 +53,23 @@ namespace WebAPI_DiegoHiriart.Controllers
                             }
                         }
                     }
+                    if (userFound)//If the user was found, now check if they are an administrator
+                    {
+
+                        using (NpgsqlCommand cmd = conn.CreateCommand())
+                        {
+                            string getProfile = "SELECT isadmin FROM profiles WHERE userid = @0";
+                            cmd.CommandText = getProfile;
+                            cmd.Parameters.AddWithValue("@0", user.UserID);
+                            using (NpgsqlDataReader reader = cmd.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    isAdmin = reader.GetBoolean(0);
+                                }
+                            }
+                        }
+                    }
                 }
                 if (!userFound)//If the user was not foun (no rows in the reader), return bad request
                 {
@@ -65,7 +83,7 @@ namespace WebAPI_DiegoHiriart.Controllers
             }
             if (VerifyPaswordHash(request.Password, user.PasswordHash, user.PasswordSalt))
             {
-                string token = CreateToken(user);
+                string token = CreateToken(user, isAdmin);
                 return Ok(token);
             }
             else
@@ -74,23 +92,16 @@ namespace WebAPI_DiegoHiriart.Controllers
             }     
         }
 
-        [HttpGet("checklogin"), Authorize]
-        public async Task<ActionResult<string>> CheckLogin()//If the function return anythng but ok, client will know token is not valid or user hasnt logged in
-        {
-            return Ok("Is logged in, token valid");
-        }
-
-        [HttpGet("checkadmin"), Authorize(Roles="admin")]
-        public async Task<ActionResult<string>> CheckAdminRole()//If the function return anythng but ok, client will know token is not valid, user hasnt logged in, or is forbidden
+        [HttpPost("check"), Authorize(Roles = "admin")]
+        public async Task<IActionResult> CheckAdminRole()//If the function returns anythng but ok, client will know token is not valid, user hasnt logged in, or is forbidden
         {
             return Ok("Is logged in, token valid, role valid");
         }
 
-        private string CreateToken(User user)
+        private string CreateToken(User user, bool isAdmin)
         {
-            List<Claim> claims = new List<Claim>();
-            if (user.UserID == APIConfig.Admin.UserID && user.Email.Equals(APIConfig.Admin.Email) 
-                && user.Username.Equals(APIConfig.Admin.Username))//If admin logs in, give them the role
+            List<Claim> claims;
+            if (isAdmin)//If admin logs in, give them the role
             {
                 claims = new List<Claim>//Claims describe the user that is authenticated, the store infor from the user
                 {
