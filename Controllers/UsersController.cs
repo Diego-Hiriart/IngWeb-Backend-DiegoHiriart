@@ -37,7 +37,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                         using (NpgsqlCommand cmd = conn.CreateCommand())
                         {
                             cmd.CommandText = createUser;
-                            cmd.Parameters.AddWithValue("@0", userDb.Email);//Replace the parameteres of the string
+                            cmd.Parameters.AddWithValue("@0", userDb.Email);//Replace the parameters of the string
                             cmd.Parameters.AddWithValue("@1", userDb.Username);
                             cmd.Parameters.AddWithValue("@2", userDb.PasswordHash);
                             cmd.Parameters.AddWithValue("@3", userDb.PasswordSalt);
@@ -233,7 +233,7 @@ namespace WebAPI_DiegoHiriart.Controllers
         }
 
         [HttpDelete("{id}"), Authorize(Roles = "admin")]//Maps the method to DELETE by id
-        public async Task<IActionResult> DeleteUser(int id)
+        public async Task<IActionResult> DeleteUser(Int64 id)
         {
             string db = APIConfig.ConnectionString;
             string deleteUser = "DELETE FROM users WHERE userid = @0";
