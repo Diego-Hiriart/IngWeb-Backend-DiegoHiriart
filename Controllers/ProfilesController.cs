@@ -17,7 +17,7 @@ namespace WebAPI_DiegoHiriart.Controllers
     [ApiController]
     public class ProfilesController : ControllerBase
     {
-        [HttpGet, Authorize(Roles = "admin")]//Maps this method to the GET request (read), only users with the role Admin can call this method. Returns 403 if wrong role, 401 if no token 
+        [HttpGet("search/{id}"), Authorize(Roles = "admin")]//Maps this method to the GET request (read), only users with the role Admin can call this method. Returns 403 if wrong role, 401 if no token 
         public async Task<ActionResult<List<Profile>>> SearchProfile(Int64 id)
         {
             List<Profile> profiles = new List<Profile>();
@@ -60,7 +60,7 @@ namespace WebAPI_DiegoHiriart.Controllers
             }
         }
 
-        [HttpPut, Authorize(Roles ="admin")]
+        [HttpPut("role-control"), Authorize(Roles ="admin")]
         public async Task<ActionResult<List<Object>>> AdminRoleEdit(Int64 id, bool isAdmin)
         {
             string db = APIConfig.ConnectionString;
