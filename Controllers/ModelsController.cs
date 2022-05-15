@@ -87,6 +87,50 @@ namespace WebAPI_DiegoHiriart.Controllers
             }
         }
 
+        [HttpGet("search/{id}")]
+        public async Task<ActionResult<List<Model>>> Search(Int64 id)
+        {
+            List<Model> models = new List<Model>();
+            string db = APIConfig.ConnectionString;
+            string readModels = "SELECT * FROM models WHERE modelid = @0";
+            try
+            {
+                using (NpgsqlConnection conn = new NpgsqlConnection(db))
+                {
+                    conn.Open();
+                    if (conn.State == ConnectionState.Open)
+                    {
+                        using (NpgsqlCommand cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = readModels;
+                            cmd.Parameters.AddWithValue("@0", id);
+                            using (NpgsqlDataReader reader = cmd.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    var model = new Model();
+                                    model.ModelId = reader.GetInt64(0);
+                                    //Use castings so that nulls get created if needed
+                                    model.BrandId = reader.GetInt32(1);
+                                    model.ModelNumber = reader[2] as string;
+                                    model.Name = reader[3] as string;
+                                    model.Launch = reader.GetDateTime(4);
+                                    model.Discontinued = reader.GetBoolean(5);
+                                    models.Add(model);//Add model to list
+                                }
+                            }
+                        }
+                    }
+                }
+                return Ok(models);
+            }
+            catch (Exception eSql)
+            {
+                Debug.WriteLine("Exception: " + eSql.Message);
+                return StatusCode(500);
+            }
+        }
+
         [HttpGet("by-brand/{brandid}")]
         public async Task<ActionResult<List<Model>>> GetModelsByBrand(int brandid)
         {
