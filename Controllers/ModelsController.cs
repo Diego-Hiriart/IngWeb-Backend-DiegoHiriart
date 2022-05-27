@@ -65,7 +65,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                                 while (reader.Read())
                                 {
                                     var model = new Model();
-                                    model.ModelId = reader.GetInt64(0);
+                                    model.ModelId = (UInt64)reader.GetInt64(0);
                                     //Use castings so that nulls get created if needed
                                     model.BrandId = reader.GetInt32(1);
                                     model.ModelNumber = reader[2] as string;
@@ -88,7 +88,7 @@ namespace WebAPI_DiegoHiriart.Controllers
         }
 
         [HttpGet("search/{id}")]
-        public async Task<ActionResult<List<Model>>> Search(Int64 id)
+        public async Task<ActionResult<List<Model>>> Search(UInt64 id)
         {
             List<Model> models = new List<Model>();
             string db = APIConfig.ConnectionString;
@@ -109,7 +109,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                                 while (reader.Read())
                                 {
                                     var model = new Model();
-                                    model.ModelId = reader.GetInt64(0);
+                                    model.ModelId = (UInt64)reader.GetInt64(0);
                                     //Use castings so that nulls get created if needed
                                     model.BrandId = reader.GetInt32(1);
                                     model.ModelNumber = reader[2] as string;
@@ -153,7 +153,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                                 while (reader.Read())
                                 {
                                     var model = new Model();
-                                    model.ModelId = reader.GetInt64(0);
+                                    model.ModelId = (UInt64)reader.GetInt64(0);
                                     //Use castings so that nulls get created if needed
                                     model.BrandId = reader.GetInt32(1);
                                     model.ModelNumber = reader[2] as string;
@@ -216,7 +216,7 @@ namespace WebAPI_DiegoHiriart.Controllers
         }
 
         [HttpDelete("{id}"), Authorize(Roles = "admin")]
-        public async Task<IActionResult> DeleteModel(Int64 id)
+        public async Task<IActionResult> DeleteModel(UInt64 id)
         {
             string db = APIConfig.ConnectionString;
             string deleteModel = "DELETE FROM models WHERE modelid = @0";

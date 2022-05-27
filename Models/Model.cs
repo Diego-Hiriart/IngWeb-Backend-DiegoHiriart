@@ -3,7 +3,7 @@
     public class Model
     {
         public Model() { }
-        public Model(Int64 modelid, int brandid, string modelnumber, string name, DateTime launch, bool discontinued)
+        public Model(UInt64 modelid, int brandid, string modelnumber, string name, DateTime launch, bool discontinued)
         {
             this.ModelId = modelid;
             this.BrandId = brandid;
@@ -13,7 +13,7 @@
             this.Discontinued = discontinued;
         }
 
-        public Int64 ModelId { get; set; }
+        public UInt64 ModelId { get; set; }
         public int BrandId { get; set; }
         public string ModelNumber { get; set; }
         public string Name { get; set; }

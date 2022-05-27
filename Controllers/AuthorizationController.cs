@@ -106,6 +106,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                 claims = new List<Claim>//Claims describe the user that is authenticated, the store infor from the user
                 {
                     new Claim(ClaimTypes.Name, user.Username),
+                    new Claim(ClaimTypes.UserData, user.UserID.ToString()),
                     new Claim(ClaimTypes.Role, "admin")//Add the "Admin" role to the token                
                 };
                 Debug.WriteLine("Admin token creation");
@@ -115,6 +116,8 @@ namespace WebAPI_DiegoHiriart.Controllers
                 claims = new List<Claim>//Claims describe the user that is authenticated, the store infor from the user
                 {
                     new Claim(ClaimTypes.Name, user.Username),
+                    new Claim(ClaimTypes.UserData, user.UserID.ToString()),
+                    new Claim(ClaimTypes.Role, "regular")//Add the "Admin" role to the token
                 };
                 Debug.WriteLine("Regular user token creation");
             }   

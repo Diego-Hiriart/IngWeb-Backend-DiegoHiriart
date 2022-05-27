@@ -233,7 +233,7 @@ namespace WebAPI_DiegoHiriart.Controllers
         }
 
         [HttpDelete("{id}"), Authorize(Roles = "admin")]//Maps the method to DELETE by id
-        public async Task<IActionResult> DeleteUser(Int64 id)//Deletes the user profile too, it is configured like that in the DB
+        public async Task<IActionResult> DeleteUser(UInt64 id)//Deletes the user profile too, it is configured like that in the DB
         {
             string db = APIConfig.ConnectionString;
             string deleteUser = "DELETE FROM users WHERE userid = @0";
