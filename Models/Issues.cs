@@ -4,7 +4,7 @@
     {
         public Issues() { }
 
-        public Issues(UInt64 issueid, UInt64 postid, int componentid, DateTime issuedate, bool isfixable, string description)
+        public Issues(Int64 issueid, Int64 postid, int componentid, DateTime issuedate, bool isfixable, string description)
         {
             this.IssueId = issueid;
             this.PostId = postid;
@@ -14,8 +14,8 @@
             this.Description = description;
         }
 
-        public UInt64 IssueId { get; set; }
-        public UInt64 PostId { get; set; }
+        public Int64 IssueId { get; set; }
+        public Int64 PostId { get; set; }
         public int ComponentId { get; set; }
         public DateTime IssueDate { get; set; }
         public bool IsFixable { get; set; }

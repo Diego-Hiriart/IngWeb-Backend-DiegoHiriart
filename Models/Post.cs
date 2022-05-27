@@ -4,7 +4,7 @@
     {
         public Post() { }
 
-        public Post(UInt64 postId, UInt64 userid, UInt64 modelid, DateTime postdate, DateTime purchase, DateTime firstissues, DateTime innoperative, string review)
+        public Post(Int64 postId, Int64 userid, Int64 modelid, DateTime postdate, DateTime purchase, DateTime? firstissues, DateTime? innoperative, string review)
         {
             this.PostId = postId;
             this.UserId = userid;
@@ -16,13 +16,13 @@
             this.Review = review;
         }
 
-        public UInt64 PostId { get; set; }
-        public UInt64 UserId { get; set; }
-        public UInt64 ModelId { get; set; }
+        public Int64 PostId { get; set; }
+        public Int64 UserId { get; set; }
+        public Int64 ModelId { get; set; }
         public DateTime PostDate { get; set; }
         public DateTime Purchase { get; set; }
-        public DateTime FirstIssues { get; set; }
-        public DateTime Innoperative { get; set; }
+        public DateTime? FirstIssues { get; set; }
+        public DateTime? Innoperative { get; set; }
         public string Review { get; set; }
     }
 }

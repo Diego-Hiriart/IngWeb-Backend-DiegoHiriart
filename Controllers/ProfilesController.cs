@@ -13,7 +13,7 @@ namespace WebAPI_DiegoHiriart.Controllers
     public class ProfilesController : ControllerBase
     {
         [HttpGet("search/{id}"), Authorize(Roles = "admin")]//Maps this method to the GET request (read), only users with the role Admin can call this method. Returns 403 if wrong role, 401 if no token 
-        public async Task<ActionResult<List<Profile>>> SearchProfile(UInt64 id)
+        public async Task<ActionResult<List<Profile>>> SearchProfile(Int64 id)
         {
             List<Profile> profiles = new List<Profile>();
             string db = APIConfig.ConnectionString;
@@ -34,7 +34,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                                 while (reader.Read())
                                 {
                                     var profile = new Profile();
-                                    profile.UserId = (UInt64)reader.GetInt64(0);//Get a long int from the first column
+                                    profile.UserId = reader.GetInt64(0);//Get a long int from the first column
                                     //Use castings so that nulls get created if needed
                                     profile.Firstname = reader[1] as string;
                                     profile.Lastname = reader[2] as string;
@@ -56,7 +56,7 @@ namespace WebAPI_DiegoHiriart.Controllers
         }
 
         [HttpPut("role-control"), Authorize(Roles ="admin")]
-        public async Task<ActionResult<List<Object>>> AdminRoleEdit(UInt64 id, bool isAdmin)
+        public async Task<ActionResult<List<Object>>> AdminRoleEdit(Int64 id, bool isAdmin)
         {
             string db = APIConfig.ConnectionString;
             string adminRoleUpdate = "UPDATE profiles SET isadmin=@0 WHERE userid = @1";
