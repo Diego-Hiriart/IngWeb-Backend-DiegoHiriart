@@ -21,6 +21,17 @@ namespace WebAPI_DiegoHiriart.Controllers
             string db = APIConfig.ConnectionString;
             string createIssue = "INSERT INTO issues(postid, componentid, issuedate, isfixable, description) " +
                 "VALUES(@0, @1, @2, @3, @4)";
+            string checkAuthor = "SELECT userid FROM posts WHERE postid = @0";//To compare the current user with the one that made the post to which an issue is to be added
+            Int64 issueAuthor = 0;
+
+            //This block of code is for getting the user's id from the token
+            string plainToken = Request.Headers.Authorization.ToString();
+            plainToken = plainToken.Replace("bearer ", "");
+            JwtSecurityTokenHandler validator = new JwtSecurityTokenHandler();
+            JwtSecurityToken token = validator.ReadJwtToken(plainToken);//Reads the string (token variable above) and turns it into an instance of a token that can be read
+            //The following userData has the ID needed no link the post to a user
+            Int64 userId = Int64.Parse(token.Claims.First(claim => claim.Type == userDataClaim).Value);//Read the token's claims, then get the first one which type matches the type we are looking for and get the value, itll be the UserID
+
 
             try
             {
@@ -31,13 +42,34 @@ namespace WebAPI_DiegoHiriart.Controllers
                     {
                         using (NpgsqlCommand cmd = conn.CreateCommand())
                         {
-                            cmd.CommandText = createIssue;
-                            cmd.Parameters.AddWithValue("@0", issue.PostId);//Replace the parameters
-                            cmd.Parameters.AddWithValue("@1", issue.ComponentId);
-                            cmd.Parameters.AddWithValue("@2", issue.IssueDate);
-                            cmd.Parameters.AddWithValue("@3", issue.IsFixable);
-                            cmd.Parameters.AddWithValue("@4", issue.Description);
-                            cmd.ExecuteNonQuery();
+                            cmd.CommandText = checkAuthor;
+                            cmd.Parameters.AddWithValue("@0", issue.PostId);
+
+                            using (NpgsqlDataReader reader = cmd.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    issueAuthor = reader.GetInt64(0);
+                                }
+                            }
+                        }
+
+                        if (userId == issueAuthor)//Is the current user is the author of the post that an issue is being added to, allow the issue to be posted
+                        {
+                            using (NpgsqlCommand cmd = conn.CreateCommand())
+                            {
+                                cmd.CommandText = createIssue;
+                                cmd.Parameters.AddWithValue("@0", issue.PostId);//Replace the parameters
+                                cmd.Parameters.AddWithValue("@1", issue.ComponentId);
+                                cmd.Parameters.AddWithValue("@2", issue.IssueDate);
+                                cmd.Parameters.AddWithValue("@3", issue.IsFixable);
+                                cmd.Parameters.AddWithValue("@4", issue.Description);
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
+                        else
+                        {
+                            return StatusCode(401, "You are not allowed to add an issue to this post");
                         }
                     }
                 }
