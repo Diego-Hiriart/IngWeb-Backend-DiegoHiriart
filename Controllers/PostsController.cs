@@ -4,7 +4,6 @@ using System.Data;
 using Npgsql;
 using System.Diagnostics;
 using WebAPI_DiegoHiriart.Models;
-using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -22,6 +21,8 @@ namespace WebAPI_DiegoHiriart.Controllers
             string db = APIConfig.ConnectionString;
             string createPost = "INSERT INTO posts(userid, modelid, postdate, purchase, firstissues, innoperative, review) " +
                 "VALUES(@0, @1, @2, @3, @4, @5, @6)";
+            string checkExisting = "SELECT COUNT(*) FROM posts WHERE modelid = @0 AND userid = @1";//Part of the control to see that each user makes only one post per model
+            int postCount = 0;
 
             //This block of code is for getting the user's id from the token
             string plainToken = Request.Headers.Authorization.ToString();
@@ -38,6 +39,24 @@ namespace WebAPI_DiegoHiriart.Controllers
                     conn.Open();
                     if (conn.State == ConnectionState.Open)
                     {
+                        using (NpgsqlCommand cmd = conn.CreateCommand())//Get how many posts have been made by the user for the model, if not zero, it cant be posted
+                        {
+                            cmd.CommandText = checkExisting;
+                            cmd.Parameters.AddWithValue("@0", post.ModelId);
+                            cmd.Parameters.AddWithValue("@1", userId);
+                            using (NpgsqlDataReader reader = cmd.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    postCount = reader.GetInt32(0);
+                                }
+                            }
+                            if (postCount > 0)
+                            {
+                                return StatusCode(400, "User already has a post for that model");
+                            }
+                        }
+                        
                         using (NpgsqlCommand cmd = conn.CreateCommand())
                         {
                             cmd.CommandText = createPost;
@@ -45,8 +64,22 @@ namespace WebAPI_DiegoHiriart.Controllers
                             cmd.Parameters.AddWithValue("@1", post.ModelId);
                             cmd.Parameters.AddWithValue("@2", post.PostDate);
                             cmd.Parameters.AddWithValue("@3", post.Purchase);
-                            cmd.Parameters.AddWithValue("@4", post.FirstIssues);
-                            cmd.Parameters.AddWithValue("@5", post.Innoperative);
+                            if (post.FirstIssues is null)
+                            {
+                                cmd.Parameters.AddWithValue("@4", DBNull.Value);
+                            }
+                            else
+                            {
+                                cmd.Parameters.AddWithValue("@4", post.FirstIssues);
+                            }
+                            if (post.Innoperative is null)
+                            {
+                                cmd.Parameters.AddWithValue("@5", DBNull.Value);
+                            }
+                            else
+                            {
+                                cmd.Parameters.AddWithValue("@5", post.Innoperative);
+                            }
                             cmd.Parameters.AddWithValue("@6", post.Review);
                             cmd.ExecuteNonQuery();
                         }
@@ -202,8 +235,8 @@ namespace WebAPI_DiegoHiriart.Controllers
         public async Task<ActionResult<List<Post>>> UpdatePost(Post post)
         {
             string db = APIConfig.ConnectionString;
-            string updatePost = "UPDATE posts SET userid=@0, modelid=@1, postdate=@2, purchase=@3, firstissues=@4, " +
-                "innoperative=@5, review=@6 WHERE postid = @7";
+            string updatePost = "UPDATE posts SET modelid=@0, postdate=@1, purchase=@2, firstissues=@3, " +
+                "innoperative=@4, review=@5 WHERE postid = @6";
 
             //This block of code is for getting the user's id from the token
             string plainToken = Request.Headers.Authorization.ToString();
@@ -213,7 +246,7 @@ namespace WebAPI_DiegoHiriart.Controllers
             //The following userData has the ID needed no link the post to a user
             Int64 userId = Int64.Parse(token.Claims.First(claim => claim.Type == userDataClaim).Value);//Read the token's claims, then get the first one which type matches the type we are looking for and get the value, itll be the UserID
 
-            if (userId == post.UserId)//If the author on the DB and the user trying to delete are the same, then it can be edited
+            if (userId == post.UserId)//If the author on the DB and the user trying to edit are the same, then it can be edited
             {
                 try
                 {
@@ -226,14 +259,13 @@ namespace WebAPI_DiegoHiriart.Controllers
                             using (NpgsqlCommand cmd = conn.CreateCommand())
                             {
                                 cmd.CommandText = updatePost;
-                                cmd.Parameters.AddWithValue("@0", userId);//Replace the parameters
-                                cmd.Parameters.AddWithValue("@1", post.ModelId);
-                                cmd.Parameters.AddWithValue("@2", post.PostDate);
-                                cmd.Parameters.AddWithValue("@3", post.Purchase);
-                                cmd.Parameters.AddWithValue("@4", post.FirstIssues);
-                                cmd.Parameters.AddWithValue("@5", post.Innoperative);
-                                cmd.Parameters.AddWithValue("@6", post.Review);
-                                cmd.Parameters.AddWithValue("@7", post.PostId);
+                                cmd.Parameters.AddWithValue("@0", post.ModelId);
+                                cmd.Parameters.AddWithValue("@1", post.PostDate);
+                                cmd.Parameters.AddWithValue("@2", post.Purchase);
+                                cmd.Parameters.AddWithValue("@3", post.FirstIssues);
+                                cmd.Parameters.AddWithValue("@4", post.Innoperative);
+                                cmd.Parameters.AddWithValue("@5", post.Review);
+                                cmd.Parameters.AddWithValue("@6", post.PostId);
                                 affectedRows = cmd.ExecuteNonQuery();
                             }
                         }

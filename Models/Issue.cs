@@ -1,10 +1,10 @@
 ﻿namespace WebAPI_DiegoHiriart.Models
 {
-    public class Issues
+    public class Issue
     {
-        public Issues() { }
+        public Issue() { }
 
-        public Issues(Int64 issueid, Int64 postid, int componentid, DateTime issuedate, bool isfixable, string description)
+        public Issue(Int64 issueid, Int64 postid, int componentid, DateTime issuedate, bool isfixable, string description)
         {
             this.IssueId = issueid;
             this.PostId = postid;
