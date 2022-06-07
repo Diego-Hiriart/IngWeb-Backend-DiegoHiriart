@@ -185,6 +185,61 @@ namespace WebAPI_DiegoHiriart.Controllers
             }
         }
 
+        //Automatically gets the user's post by getting the ID from the token
+        [HttpGet("by-user-auto"), Authorize]
+        public async Task<ActionResult<List<Post>>> GetByUserAuto()
+        {
+            //This block of code is for getting the user's id from the token
+            string plainToken = Request.Headers.Authorization.ToString();
+            plainToken = plainToken.Replace("bearer ", "");
+            JwtSecurityTokenHandler validator = new JwtSecurityTokenHandler();
+            JwtSecurityToken token = validator.ReadJwtToken(plainToken);//Reads the string (token variable above) and turns it into an instance of a token that can be read
+            //The following userData has the ID needed no link the post to a user
+            Int64 userId = Int64.Parse(token.Claims.First(claim => claim.Type == userDataClaim).Value);//Read the token's claims, then get the first one which type matches the type we are looking for and get the value, itll be the UserID
+
+            List<Post> posts = new List<Post>();
+            string db = APIConfig.ConnectionString;
+            string getPostsByUser = "SELECT * FROM posts WHERE userid = @0";
+            try
+            {
+                using (NpgsqlConnection conn = new NpgsqlConnection(db))
+                {
+                    conn.Open();
+                    if (conn.State == ConnectionState.Open)
+                    {
+                        using (NpgsqlCommand cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = getPostsByUser;
+                            cmd.Parameters.AddWithValue("@0", userId);//Use token's userId for the search
+                            using (NpgsqlDataReader reader = cmd.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    var post = new Post();
+                                    post.PostId = reader.GetInt64(0);//Get int from the first column
+                                    //Use castings so that nulls get created if needed
+                                    post.UserId = reader.GetInt64(1);
+                                    post.ModelId = reader.GetInt64(2);
+                                    post.PostDate = reader.GetDateTime(3);
+                                    post.Purchase = reader.GetDateTime(4);
+                                    post.FirstIssues = reader[5] as DateTime?;
+                                    post.Innoperative = reader[6] as DateTime?;
+                                    post.Review = reader[7] as string;
+                                    posts.Add(post);
+                                }
+                            }
+                        }
+                    }
+                }
+                return Ok(posts);
+            }
+            catch (Exception eSql)
+            {
+                Debug.WriteLine("Exception: " + eSql.Message);
+                return StatusCode(500);
+            }
+        }
+
         [HttpGet("by-model/{id}")]
         public async Task<ActionResult<List<Post>>> GetByModel(Int64 id)
         {
