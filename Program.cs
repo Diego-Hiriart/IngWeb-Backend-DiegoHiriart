@@ -18,7 +18,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy(name: AllowLocalhostOrigins,
                       policy =>
                       {
-                          policy.WithOrigins("https://ingweb-front-hiriart.herokuapp.com/")//Only the front end address can use it //http://localhost:3000
+                          policy.WithOrigins("https://ingweb-front-hiriart.herokuapp.com")//Only the front end address can use it //http://localhost:3000
                           .WithHeaders(HeaderNames.ContentType, HeaderNames.Authorization)//Allow content type (to use jsons) and authorization (for login) to be in the header
                           .WithMethods("POST", "GET", "PUT", "DELETE");//Allow all methods
 
