@@ -240,6 +240,52 @@ namespace WebAPI_DiegoHiriart.Controllers
             }
         }
 
+        [HttpGet("search/{id}"), Authorize]
+        public async Task<ActionResult<List<Post>>> GetById(Int64 id)
+        {
+            List<Post> posts = new List<Post>();
+            string db = APIConfig.ConnectionString;
+            string getPostsByUser = "SELECT * FROM posts WHERE postid = @0";
+            try
+            {
+                using (NpgsqlConnection conn = new NpgsqlConnection(db))
+                {
+                    conn.Open();
+                    if (conn.State == ConnectionState.Open)
+                    {
+                        using (NpgsqlCommand cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = getPostsByUser;
+                            cmd.Parameters.AddWithValue("@0", id);
+                            using (NpgsqlDataReader reader = cmd.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    var post = new Post();
+                                    post.PostId = reader.GetInt64(0);//Get int from the first column
+                                    //Use castings so that nulls get created if needed
+                                    post.UserId = reader.GetInt64(1);
+                                    post.ModelId = reader.GetInt64(2);
+                                    post.PostDate = reader.GetDateTime(3);
+                                    post.Purchase = reader.GetDateTime(4);
+                                    post.FirstIssues = reader[5] as DateTime?;
+                                    post.Innoperative = reader[6] as DateTime?;
+                                    post.Review = reader[7] as string;
+                                    posts.Add(post);
+                                }
+                            }
+                        }
+                    }
+                }
+                return Ok(posts);
+            }
+            catch (Exception eSql)
+            {
+                Debug.WriteLine("Exception: " + eSql.Message);
+                return StatusCode(500);
+            }
+        }
+
         [HttpGet("by-model/{id}")]
         public async Task<ActionResult<List<Post>>> GetByModel(Int64 id)
         {
@@ -317,8 +363,22 @@ namespace WebAPI_DiegoHiriart.Controllers
                                 cmd.Parameters.AddWithValue("@0", post.ModelId);
                                 cmd.Parameters.AddWithValue("@1", post.PostDate);
                                 cmd.Parameters.AddWithValue("@2", post.Purchase);
-                                cmd.Parameters.AddWithValue("@3", post.FirstIssues);
-                                cmd.Parameters.AddWithValue("@4", post.Innoperative);
+                                if (post.FirstIssues is null)
+                                {
+                                    cmd.Parameters.AddWithValue("@3", DBNull.Value);
+                                }
+                                else
+                                {
+                                    cmd.Parameters.AddWithValue("@3", post.FirstIssues);
+                                }
+                                if (post.Innoperative is null)
+                                {
+                                    cmd.Parameters.AddWithValue("@4", DBNull.Value);
+                                }
+                                else
+                                {
+                                    cmd.Parameters.AddWithValue("@4", post.Innoperative);
+                                }
                                 cmd.Parameters.AddWithValue("@5", post.Review);
                                 cmd.Parameters.AddWithValue("@6", post.PostId);
                                 affectedRows = cmd.ExecuteNonQuery();

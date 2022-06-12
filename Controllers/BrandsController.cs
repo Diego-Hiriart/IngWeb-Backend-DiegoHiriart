@@ -81,6 +81,47 @@ namespace WebAPI_DiegoHiriart.Controllers
             }
         }
 
+        [HttpGet("search/{id}"), Authorize]
+        public async Task<ActionResult<List<Brand>>> SeachBrand(int id)
+        {
+            List<Brand> brands = new List<Brand>();
+            string db = APIConfig.ConnectionString;
+            string readBrands = "SELECT * FROM brands WHERE brandid = @0";
+            try
+            {
+                using (NpgsqlConnection conn = new NpgsqlConnection(db))
+                {
+                    conn.Open();
+                    if (conn.State == ConnectionState.Open)
+                    {
+                        using (NpgsqlCommand cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = readBrands;
+                            cmd.Parameters.AddWithValue("@0", id);
+                            using (NpgsqlDataReader reader = cmd.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    var brand = new Brand();
+                                    brand.BrandId = reader.GetInt32(0);//Get int from the first column
+                                    //Use castings so that nulls get created if needed
+                                    brand.Name = reader[1] as string;
+                                    brand.IsDefunct = reader.GetBoolean(2);
+                                    brands.Add(brand);//Add brand to list
+                                }
+                            }
+                        }
+                    }
+                }
+                return Ok(brands);
+            }
+            catch (Exception eSql)
+            {
+                Debug.WriteLine("Exception: " + eSql.Message);
+                return StatusCode(500);
+            }
+        }
+
         [HttpPut, Authorize(Roles = "admin")]
         public async Task<ActionResult<List<Brand>>> UpdateBrand(Brand brand)
         {
@@ -119,7 +160,7 @@ namespace WebAPI_DiegoHiriart.Controllers
         }
 
         [HttpDelete("{id}"), Authorize(Roles = "admin")]
-        public async Task<IActionResult> DeleteUser(int id)
+        public async Task<IActionResult> DeleteBrand(int id)
         {
             string db = APIConfig.ConnectionString;
             string deleteBrand = "DELETE FROM brands WHERE brandid = @0";
