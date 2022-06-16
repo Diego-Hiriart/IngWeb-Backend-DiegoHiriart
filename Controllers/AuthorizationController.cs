@@ -53,6 +53,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             }
                         }
                     }
+                    conn.Close();
                     if (userFound)//If the user was found, now check if they are an administrator
                     {
 

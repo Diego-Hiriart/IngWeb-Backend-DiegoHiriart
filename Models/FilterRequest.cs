@@ -1,6 +1,6 @@
 ﻿namespace WebAPI_DiegoHiriart.Models
 {
-    public class StatsRequest
+    public class FilterRequest
     {
 
     }
