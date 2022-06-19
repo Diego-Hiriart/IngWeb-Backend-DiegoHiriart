@@ -4,15 +4,19 @@
     {
         public FilterRequest() { }
 
-        public FilterRequest(int lifeSpanYears, int issueFreeYears, int maxIssuesAnyComponent)
+        public FilterRequest(int minLifeSpanYears, int minIssueFreeYears, double maxPercentIssues, double minPercentFixableIssues)
         {
-            this.lifeSpanYears = lifeSpanYears;
-            this.issueFreeYears = issueFreeYears;
-            this.maxIssuesAnyComponent = maxIssuesAnyComponent;
+            this.minLifeSpanYears = minLifeSpanYears;
+            this.minIssueFreeYears = minIssueFreeYears;
+            this.maxPercentIssues = maxPercentIssues;
+            this.minPercentFixableIssues = minPercentFixableIssues;
+
         }
 
-        public int lifeSpanYears { set; get; }
-        public int issueFreeYears { set; get; }
-        public int maxIssuesAnyComponent { set; get; }
+        public int minReviews { set; get; }//So that you can search for models with more reviews; satistically, more reviews = more trustworthy stats
+        public int minLifeSpanYears { set; get; }
+        public int minIssueFreeYears { set; get; }
+        public double maxPercentIssues { set; get; }
+        public double minPercentFixableIssues { set; get; }
     }
 }

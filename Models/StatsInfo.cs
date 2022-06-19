@@ -1,4 +1,6 @@
-﻿namespace WebAPI_DiegoHiriart.Models
+﻿using Microsoft.AspNetCore.Mvc;
+
+namespace WebAPI_DiegoHiriart.Models
 {
     public class StatsInfo
     {
