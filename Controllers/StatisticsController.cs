@@ -64,11 +64,11 @@ namespace WebAPI_DiegoHiriart.Controllers
                 }
 
                 //Check if time spans meet the requirements form the filter, if they dont, the cant be added
-                if (unfiltered.lifespan.TotalSeconds < TimeSpan.FromDays(request.minLifeSpanYears*365).TotalSeconds)
+                if (unfiltered.lifeSpan < TimeSpan.FromDays(request.minLifeSpanYears*365).TotalDays)
                 {
                     continue;//If the requirements are not met, skip the rest of this foreach iteration (do not add to filtered results)
                 }
-                if (unfiltered.issueFree.TotalSeconds < TimeSpan.FromDays(request.minIssueFreeYears*365).TotalSeconds)
+                if (unfiltered.issueFree < TimeSpan.FromDays(request.minIssueFreeYears*365).TotalDays)
                 {
                     continue;//If the requirements are not met, skip the rest of this foreach iteration (do not add to filtered results)
                 }
@@ -279,8 +279,8 @@ namespace WebAPI_DiegoHiriart.Controllers
                         issueFreeSpans.Add(post.FirstIssues.Value.Subtract(post.Purchase));
                     }
                     //Set averages, the is a function for this but I couldnt get it to work due to IQueryable so i made one
-                    statsInfo.lifespan = SpanAverage(lifeSpans);
-                    statsInfo.issueFree = SpanAverage(issueFreeSpans);
+                    statsInfo.lifeSpan = SpanAverage(lifeSpans).TotalDays;
+                    statsInfo.issueFree = SpanAverage(issueFreeSpans).TotalDays;
 
                     //Set Issues data
                     foreach (Component component in components)
