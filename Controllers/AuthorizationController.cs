@@ -53,7 +53,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             }
                         }
                     }
-                    conn.Close();
+                    
                     if (userFound)//If the user was found, now check if they are an administrator
                     {
 
@@ -71,6 +71,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             }
                         }
                     }
+                    conn.Close();
                 }
                 if (!userFound)//If the user was not foun (no rows in the reader), return bad request
                 {

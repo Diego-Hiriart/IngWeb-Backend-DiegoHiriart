@@ -14,12 +14,16 @@ namespace WebAPI_DiegoHiriart.Controllers
         [HttpGet("by-model/{id}")]
         public async Task<ActionResult<StatsInfo>> ModelStats(Int64 id)
         {
+            Model model = new Model();
+            Brand brand = new Brand();
             List<Post> posts = new List<Post>();
             List<Issue> issues = new List<Issue>();
             List<Component> components = new List<Component>();
             StatsInfo statsInfo = new StatsInfo();
 
             string db = APIConfig.ConnectionString;
+            string readModel = "SELECT * FROM models WHERE modelid = @0";
+            string readBrand = "SELECT * FROM brands WHERE brandid = @0";
             string readPosts = "SELECT * FROM posts WHERE modelid = @0";
             string readIssues = "SELECT i.* FROM posts p " +
                                 "INNER JOIN issues i on i.postid = p.postid " +
@@ -34,6 +38,41 @@ namespace WebAPI_DiegoHiriart.Controllers
                     conn.Open();
                     if (conn.State == ConnectionState.Open)
                     {
+                        using (NpgsqlCommand cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = readModel;
+                            cmd.Parameters.AddWithValue("@0", id);
+                            using (NpgsqlDataReader reader = cmd.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    model.ModelId = reader.GetInt64(0);
+                                    //Use castings so that nulls get created if needed
+                                    model.BrandId = reader.GetInt32(1);
+                                    model.ModelNumber = reader[2] as string;
+                                    model.Name = reader[3] as string;
+                                    model.Launch = reader.GetDateTime(4);
+                                    model.Discontinued = reader.GetBoolean(5);
+                                }
+                            }
+                        }
+
+                        using (NpgsqlCommand cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = readBrand;
+                            cmd.Parameters.AddWithValue("@0", model.BrandId);
+                            using (NpgsqlDataReader reader = cmd.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    brand.BrandId = reader.GetInt32(0);//Get int from the first column
+                                    //Use castings so that nulls get created if needed
+                                    brand.Name = reader[1] as string;
+                                    brand.IsDefunct = reader.GetBoolean(2);
+                                }
+                            }
+                        }
+
                         using (NpgsqlCommand cmd = conn.CreateCommand())
                         {
                             cmd.CommandText = readPosts;
@@ -115,6 +154,10 @@ namespace WebAPI_DiegoHiriart.Controllers
                     }
                     conn.Close();
 
+                    //Set model and brand
+                    statsInfo.model = model;
+                    statsInfo.brand = brand;
+
                     //Set total review number
                     statsInfo.totalReviews = posts.Count;
 
@@ -175,6 +218,8 @@ namespace WebAPI_DiegoHiriart.Controllers
                 return StatusCode(500);
             }
         }
+
+
 
         //Average TimeSpan out of a List of TimeSpans
         private TimeSpan SpanAverage(List<TimeSpan> spans)

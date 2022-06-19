@@ -275,6 +275,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                                 affectedRows = cmd.ExecuteNonQuery();
                             }
                         }
+                        conn.Close();
                     }
                     if (affectedRows > 0)
                     {
