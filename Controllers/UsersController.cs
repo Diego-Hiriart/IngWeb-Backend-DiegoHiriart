@@ -44,6 +44,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             cmd.ExecuteNonQuery();
                         }
                     }
+                    conn.Close();
                 }
                 return Ok(user);
             }
@@ -85,6 +86,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             }
                         }
                     }
+                    conn.Close();
                 }
                 return Ok(users);
             }
@@ -126,6 +128,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             }
                         }
                     }
+                    conn.Close();
                 }
                 if (users.Count > 0)
                 {
@@ -171,6 +174,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             }
                         }
                     }
+                    conn.Close();
                 }
                 if (users.Count > 0)
                 {
@@ -217,6 +221,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             affectedRows = cmd.ExecuteNonQuery();                         
                         }
                     }
+                    conn.Close();
                 }
                 if (affectedRows > 0)
                 {
@@ -252,6 +257,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             affectedRows = cmd.ExecuteNonQuery();
                         }
                     }
+                    conn.Close();
                 }
                 if (affectedRows > 0)
                 {

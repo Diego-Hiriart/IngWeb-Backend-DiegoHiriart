@@ -72,6 +72,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             return StatusCode(401, "You are not allowed to add an issue to this post");
                         }
                     }
+                    conn.Close();
                 }
                 return Ok(issue);
             }
@@ -115,6 +116,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             }
                         }
                     }
+                    conn.Close();
                 }
                 return Ok(issues);
             }
@@ -159,6 +161,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             }
                         }
                     }
+                    conn.Close();
                 }
                 return Ok(issues);
             }
@@ -202,6 +205,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             }
                         }
                     }
+                    conn.Close();
                 }
                 return Ok(issues);
             }
@@ -247,6 +251,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                         }
                     }
                 }
+                conn.Close();
             }
 
             if (userId == issueAuthor)//If the author on the DB and the user trying to edit are the same, then it can be edited
@@ -270,6 +275,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                                 affectedRows = cmd.ExecuteNonQuery();
                             }
                         }
+                        conn.Close();
                     }
                     if (affectedRows > 0)
                     {
@@ -341,6 +347,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             return StatusCode(401, "You are not allowed to delete this issue");
                         }
                     }
+                    conn.Close();
                 }
                 if (affectedRows > 0)
                 {

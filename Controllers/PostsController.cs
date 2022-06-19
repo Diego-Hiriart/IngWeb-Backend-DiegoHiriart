@@ -84,6 +84,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             cmd.ExecuteNonQuery();
                         }
                     }
+                    conn.Close();
                 }
                 return Ok(post);
             }
@@ -129,6 +130,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             }
                         }
                     }
+                    conn.Close();
                 }
                 return Ok(posts);
             }
@@ -175,6 +177,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             }
                         }
                     }
+                    conn.Close();
                 }
                 return Ok(posts);
             }
@@ -230,6 +233,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             }
                         }
                     }
+                    conn.Close();
                 }
                 return Ok(posts);
             }
@@ -276,6 +280,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             }
                         }
                     }
+                    conn.Close();
                 }
                 return Ok(posts);
             }
@@ -322,6 +327,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             }
                         }
                     }
+                    conn.Close();
                 }
                 return Ok(posts);
             }
@@ -384,6 +390,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                                 affectedRows = cmd.ExecuteNonQuery();
                             }
                         }
+                        conn.Close();
                     }
                     if (affectedRows > 0)
                     {
@@ -455,6 +462,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             return StatusCode(401, "You are not allowed to delete this post");
                         }
                     }
+                    conn.Close();
                 }
                 if (affectedRows > 0)
                 {

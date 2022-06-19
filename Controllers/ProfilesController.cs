@@ -45,6 +45,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             }
                         }
                     }
+                    conn.Close();
                 }
                 return Ok(profiles);
             }
@@ -76,6 +77,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             affectedRows = cmd.ExecuteNonQuery();
                         }
                     }
+                    conn.Close();
                 }
                 if (affectedRows > 0)
                 {

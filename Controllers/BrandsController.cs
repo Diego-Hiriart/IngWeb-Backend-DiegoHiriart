@@ -31,6 +31,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             cmd.ExecuteNonQuery();
                         }
                     }
+                    conn.Close();
                 }
                 return Ok(brand);
             }
@@ -71,6 +72,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             }
                         }
                     }
+                    conn.Close();
                 }
                 return Ok(brands);
             }
@@ -112,6 +114,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             }
                         }
                     }
+                    conn.Close();
                 }
                 return Ok(brands);
             }
@@ -144,6 +147,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             affectedRows = cmd.ExecuteNonQuery();
                         }
                     }
+                    conn.Close();
                 }
                 if (affectedRows > 0)
                 {
@@ -179,6 +183,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             affectedRows = cmd.ExecuteNonQuery();
                         }
                     }
+                    conn.Close();
                 }
                 if (affectedRows > 0)
                 {
