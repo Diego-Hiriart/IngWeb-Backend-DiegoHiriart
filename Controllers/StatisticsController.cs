@@ -27,6 +27,7 @@ namespace WebAPI_DiegoHiriart.Controllers
             List<Int64> modelIds = new List<Int64>();
             List<StatsInfo> unfilteredResults = new List<StatsInfo>();
             List<StatsInfo> filteredResults = new List<StatsInfo>();
+            FilterResponse filterResponse = new FilterResponse();
 
             using (NpgsqlConnection conn = new NpgsqlConnection(db))
             {
@@ -99,7 +100,11 @@ namespace WebAPI_DiegoHiriart.Controllers
                 filteredResults.Add(unfiltered);
             }
 
-            return Ok(filteredResults);
+            //Put results in filter response
+            filterResponse.modelsFound = filteredResults.Count();
+            filterResponse.results = filteredResults;
+
+            return Ok(filterResponse);
         }
 
         //This mehotd fills the stats, it is implemented like this because it is used in two methods and honestly thats the best way I found
