@@ -12,6 +12,43 @@ namespace WebAPI_DiegoHiriart.Controllers
     [ApiController]
     public class ProfilesController : ControllerBase
     {
+        [HttpPost, Authorize]
+        public async Task<ActionResult<List<Profile>>> CreateProfile(Profile profile)
+        {
+            string db = APIConfig.ConnectionString;
+            string createProfile = "INSERT INTO profiles(userid, firstname, lastname, bio, isadmin) " +
+                "VALUES(@0, @1, @2, @3, @4)";
+            try
+            {
+                using (NpgsqlConnection conn = new NpgsqlConnection(db))
+                {
+                    conn.Open();
+                    if (conn.State == ConnectionState.Open)
+                    {
+                        using (NpgsqlCommand cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = createProfile;
+                            cmd.Parameters.AddWithValue("@0", profile.UserId);
+                            cmd.Parameters.AddWithValue("@1", profile.Firstname);
+                            cmd.Parameters.AddWithValue("@2", profile.Lastname);
+                            cmd.Parameters.AddWithValue("@3", profile.Bio);
+                            cmd.Parameters.AddWithValue("@4", profile.IsAdmin);
+                            cmd.ExecuteNonQuery();
+                        }
+                    }
+                    conn.Close();
+                }
+                return Ok(profile);
+
+            }
+            catch (Exception eSql)
+            {
+                Debug.WriteLine("Exception: " + eSql.Message);
+                return StatusCode(500);
+            }
+        }
+
+
         [HttpGet("search/{id}"), Authorize(Roles = "admin")]//Maps this method to the GET request (read), only users with the role Admin can call this method. Returns 403 if wrong role, 401 if no token 
         public async Task<ActionResult<List<Profile>>> SearchProfile(Int64 id)
         {
