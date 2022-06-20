@@ -19,6 +19,8 @@ namespace WebAPI_DiegoHiriart.Controllers
         {
             string db = APIConfig.ConnectionString;
             string createUser = "INSERT INTO users(email, username, passwordhash, passwordsalt) VALUES(@0, @1, @2, @3)";
+            string getCreatedUserId = "SELECT userid FROM users WHERE email = @0 AND username = @1 AND passwordhash = @2 AND passwordsalt = @3";
+            Int64 newID = 0;
             if (string.IsNullOrEmpty(user.Email) || string.IsNullOrEmpty(user.Password)
                 || string.IsNullOrEmpty(user.Username))//Do no create if data not complete
             {
@@ -43,9 +45,29 @@ namespace WebAPI_DiegoHiriart.Controllers
                             cmd.Parameters.AddWithValue("@3", userDb.PasswordSalt);
                             cmd.ExecuteNonQuery();
                         }
+
+                        using (NpgsqlCommand cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = getCreatedUserId;
+                            cmd.Parameters.AddWithValue("@0", userDb.Email);//Replace the parameters of the string
+                            cmd.Parameters.AddWithValue("@1", userDb.Username);
+                            cmd.Parameters.AddWithValue("@2", userDb.PasswordHash);
+                            cmd.Parameters.AddWithValue("@3", userDb.PasswordSalt);
+                            using (NpgsqlDataReader reader = cmd.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    newID = reader.GetInt64(0);
+                                }
+                            }
+                        }
                     }
                     conn.Close();
                 }
+                //Create a basic profile when a user is created
+                Profile basicProfile = new Profile(newID, "", "", "", false);
+                ProfilesController profileController = new ProfilesController();
+                await profileController.CreateProfile(basicProfile);
                 return Ok(user);
             }
             catch (Exception eSql)
