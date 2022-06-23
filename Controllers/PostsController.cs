@@ -24,14 +24,8 @@ namespace WebAPI_DiegoHiriart.Controllers
             string checkExisting = "SELECT COUNT(*) FROM posts WHERE modelid = @0 AND userid = @1";//Part of the control to see that each user makes only one post per model
             int postCount = 0;
 
-            //This block of code is for getting the user's id from the token
-            string plainToken = Request.Headers.Authorization.ToString();
-            plainToken = plainToken.Replace("bearer ", "");
-            JwtSecurityTokenHandler validator = new JwtSecurityTokenHandler();
-            JwtSecurityToken token = validator.ReadJwtToken(plainToken);//Reads the string (token variable above) and turns it into an instance of a token that can be read
-            //The following userData has the ID needed no link the post to a user
-            Int64 userId = Int64.Parse(token.Claims.First(claim => claim.Type == userDataClaim).Value);//Read the token's claims, then get the first one which type matches the type we are looking for and get the value, itll be the UserID
-            
+            Int64 userId = this.TokenUserId(Request);
+
             try
             {
                 using (NpgsqlConnection conn = new NpgsqlConnection(db))
@@ -192,13 +186,7 @@ namespace WebAPI_DiegoHiriart.Controllers
         [HttpGet("by-user-auto"), Authorize]
         public async Task<ActionResult<List<Post>>> GetByUserAuto()
         {
-            //This block of code is for getting the user's id from the token
-            string plainToken = Request.Headers.Authorization.ToString();
-            plainToken = plainToken.Replace("bearer ", "");
-            JwtSecurityTokenHandler validator = new JwtSecurityTokenHandler();
-            JwtSecurityToken token = validator.ReadJwtToken(plainToken);//Reads the string (token variable above) and turns it into an instance of a token that can be read
-            //The following userData has the ID needed no link the post to a user
-            Int64 userId = Int64.Parse(token.Claims.First(claim => claim.Type == userDataClaim).Value);//Read the token's claims, then get the first one which type matches the type we are looking for and get the value, itll be the UserID
+            Int64 userId = this.TokenUserId(Request);
 
             List<Post> posts = new List<Post>();
             string db = APIConfig.ConnectionString;
@@ -345,13 +333,7 @@ namespace WebAPI_DiegoHiriart.Controllers
             string updatePost = "UPDATE posts SET modelid=@0, postdate=@1, purchase=@2, firstissues=@3, " +
                 "innoperative=@4, review=@5 WHERE postid = @6";
 
-            //This block of code is for getting the user's id from the token
-            string plainToken = Request.Headers.Authorization.ToString();
-            plainToken = plainToken.Replace("bearer ", "");
-            JwtSecurityTokenHandler validator = new JwtSecurityTokenHandler();
-            JwtSecurityToken token = validator.ReadJwtToken(plainToken);//Reads the string (token variable above) and turns it into an instance of a token that can be read
-            //The following userData has the ID needed no link the post to a user
-            Int64 userId = Int64.Parse(token.Claims.First(claim => claim.Type == userDataClaim).Value);//Read the token's claims, then get the first one which type matches the type we are looking for and get the value, itll be the UserID
+            Int64 userId = this.TokenUserId(Request);
 
             if (userId == post.UserId)//If the author on the DB and the user trying to edit are the same, then it can be edited
             {
@@ -419,13 +401,7 @@ namespace WebAPI_DiegoHiriart.Controllers
             string deletePost = "DELETE FROM posts WHERE postid = @0";
             Int64 postAuthorId = 0;
 
-            //This block of code is for getting the user's id from the token
-            string plainToken = Request.Headers.Authorization.ToString();
-            plainToken = plainToken.Replace("bearer ", "");
-            JwtSecurityTokenHandler validator = new JwtSecurityTokenHandler();
-            JwtSecurityToken token = validator.ReadJwtToken(plainToken);//Reads the string (token variable above) and turns it into an instance of a token that can be read
-            //The following userData has the ID needed no link the post to a user
-            Int64 userId = Int64.Parse(token.Claims.First(claim => claim.Type == userDataClaim).Value);//Read the token's claims, then get the first one which type matches the type we are looking for and get the value, itll be the UserID
+            Int64 userId = this.TokenUserId(Request);
 
             try
             {
@@ -457,7 +433,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                                 affectedRows = cmd.ExecuteNonQuery();
                             }
                         }
-                        else
+                        else if(userId != postAuthorId && postAuthorId != 0)
                         {
                             return StatusCode(401, "You are not allowed to delete this post");
                         }
@@ -478,13 +454,15 @@ namespace WebAPI_DiegoHiriart.Controllers
             return BadRequest("Post not found");
         }
 
-        /*//This next block of code is need to check that the user wanting to edit or delete the post is the post's owner, this is done by checking the token they have
-        string plainToken = Request.Headers.Authorization.ToString();
-        plainToken = plainToken.Replace("bearer ", "");
-        JwtSecurityTokenHandler validator = new JwtSecurityTokenHandler();
-        JwtSecurityToken token = validator.ReadJwtToken(plainToken);//Reads the string (token variable above) and turns it into an instance of a token that can be read
-        string userId = token.Claims.First(claim => claim.Type == userDataClaim).Value;//Read the token's claims, then get the first one which type matches the type we are looking for and get the value, itll be the UserID
-        Debug.WriteLine($"The claim's UserId is: {userId}");
-        return Ok(userId);*/
+        private Int64 TokenUserId(HttpRequest request)
+        {
+            //This block of code is for getting the user's id from the token
+            string plainToken = request.Headers.Authorization.ToString();
+            plainToken = plainToken.Replace("bearer ", "");
+            JwtSecurityTokenHandler validator = new JwtSecurityTokenHandler();
+            JwtSecurityToken token = validator.ReadJwtToken(plainToken);//Reads the string (token variable above) and turns it into an instance of a token that can be read
+            //The following Int64 has the ID needed to link the post to a user
+            return  Int64.Parse(token.Claims.First(claim => claim.Type == userDataClaim).Value);//Read the token's claims, then get the first one which type matches the type we are looking for and get the value, itll be the UserID
+        }
     }
 }
