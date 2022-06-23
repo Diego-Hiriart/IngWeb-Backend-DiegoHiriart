@@ -29,24 +29,32 @@ namespace WebAPI_DiegoHiriart.Controllers
             List<StatsInfo> filteredResults = new List<StatsInfo>();
             FilterResponse filterResponse = new FilterResponse();
 
-            using (NpgsqlConnection conn = new NpgsqlConnection(db))
+            try
             {
-                conn.Open();
-                if (conn.State == ConnectionState.Open)
+                using (NpgsqlConnection conn = new NpgsqlConnection(db))
                 {
-                    using (NpgsqlCommand cmd = conn.CreateCommand())
+                    conn.Open();
+                    if (conn.State == ConnectionState.Open)
                     {
-                        cmd.CommandText = readModelIds;
-                        using (NpgsqlDataReader reader = cmd.ExecuteReader())
+                        using (NpgsqlCommand cmd = conn.CreateCommand())
                         {
-                            while (reader.Read())
+                            cmd.CommandText = readModelIds;
+                            using (NpgsqlDataReader reader = cmd.ExecuteReader())
                             {
-                                modelIds.Add(reader.GetInt64(0));
+                                while (reader.Read())
+                                {
+                                    modelIds.Add(reader.GetInt64(0));
+                                }
                             }
                         }
                     }
+                    conn.Close();
                 }
-                conn.Close();
+            }
+            catch (Exception eSql)
+            {
+                Debug.WriteLine("Exception: " + eSql.Message);
+                return filterResponse;
             }
 
             //Add all the stats by calling the ModelStats function, they will be filtered later
@@ -105,6 +113,146 @@ namespace WebAPI_DiegoHiriart.Controllers
             filterResponse.results = filteredResults;
 
             return Ok(filterResponse);
+        }
+
+        //Filter by date range and fixable issues
+        [HttpPost("date-fixable-filter")]
+        public async Task<ActionResult<DateFixableFilterResponse>> DateFixableFilter(DateFixableFilterRequest request)
+        {
+            string db = APIConfig.ConnectionString;
+            string readPosts = "SELECT * FROM posts";//Get only models that have been reviewed
+            string readIssues = "SELECT * FROM issues WHERE postid IN (@0)";
+            string postIdList = "";
+            List<Post> posts = new List<Post>();
+            List<Post> filteredPosts = new List<Post>();
+            List<Issue> issues = new List<Issue>();
+            List<Issue> filteredIssues = new List<Issue>();
+            DateFixableFilterResponse filterResponse = new DateFixableFilterResponse();
+
+            try{ 
+                using (NpgsqlConnection conn = new NpgsqlConnection(db))
+                {
+                    conn.Open();
+                    if (conn.State == ConnectionState.Open)
+                    {
+
+                        using (NpgsqlCommand cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = readPosts;
+                            using (NpgsqlDataReader reader = cmd.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    var post = new Post();
+                                    post.PostId = reader.GetInt64(0);//Get int from the first column
+                                    //Use castings so that nulls get created if needed
+                                    post.UserId = reader.GetInt64(1);
+                                    post.ModelId = reader.GetInt64(2);
+                                    post.PostDate = reader.GetDateTime(3);
+                                    post.Purchase = reader.GetDateTime(4);
+                                    post.FirstIssues = reader[5] as DateTime?;
+                                    post.Innoperative = reader[6] as DateTime?;
+                                    post.Review = reader[7] as string;
+                                    posts.Add(post);
+                                }
+                            }
+                        }
+
+                        //Posts filtering by post date
+                        foreach(Post post in posts)
+                        {
+                            if (post.PostDate>=request.startDate && post.PostDate<=request.endDate)
+                            {
+                                filteredPosts.Add(post);
+                            }
+                        }
+
+                        //Get issues of the filtered psots
+                        if (filteredPosts.Count > 0)//The filter may have found nothing, only search for issues fif posts were found
+                        {
+                            //Add post ids to use in search 
+                            List<Int64> ids = new List<Int64>();//To check if ids have already been added to query
+                            for (int i = 0; i < filteredPosts.Count; i++)//Get individual ids
+                            {
+                                if (!ids.Contains(filteredPosts[i].PostId))//If the id has not been added yet
+                                {
+                                    ids.Add(filteredPosts[i].PostId);
+                                }
+                            }
+                            foreach (int postId in ids)//Fill ids string
+                            {
+                                if (postId != ids[(ids.Count) - 1])//Add with a coma (theres more after)
+                                {
+                                    postIdList += postId.ToString() + ", ";
+                                }
+                                else//Add without comma (last one)
+                                {
+                                    postIdList += postId.ToString();
+                                }
+                            }
+                            using (NpgsqlCommand cmd = conn.CreateCommand())
+                            {
+                                cmd.CommandText = readIssues.Replace("@0", postIdList);
+                                using (NpgsqlDataReader reader = cmd.ExecuteReader())
+                                {
+                                    while (reader.Read())
+                                    {
+                                        var issue = new Issue();
+                                        issue.IssueId = reader.GetInt64(0);//Get int from the first column
+                                                                           //Use castings so that nulls get created if needed
+                                        issue.PostId = reader.GetInt64(1);
+                                        issue.ComponentId = reader.GetInt32(2);
+                                        issue.IssueDate = reader.GetDateTime(3);
+                                        issue.IsFixable = reader.GetBoolean(4);
+                                        issue.Description = reader[5] as string;
+                                        issues.Add(issue);
+                                    }
+                                }
+                            }
+                        }            
+                    }
+                    conn.Close();
+
+                    //Filter issues
+                    //Only filter if show fixables is false
+                    if (!request.showFixables)
+                    {
+                        foreach (Issue issue in issues)
+                        {
+                            if (!issue.IsFixable)//If not fixable, add to list
+                            {
+                                filteredIssues.Add(issue);
+                            }
+                        }
+                    }
+                    else//Add everything it show fixables is true
+                    {
+                        filteredIssues = issues;
+                    }
+                }
+            }
+            catch (Exception eSql)
+            {
+                Debug.WriteLine("Exception: " + eSql.Message);
+                return filterResponse;
+            }
+
+            //Add properties to response
+            foreach(Post post in filteredPosts)
+            {
+                List<Issue> issuesToAdd = new List<Issue>();
+                foreach (Issue issue in filteredIssues)
+                {
+                    if (issue.PostId == post.PostId)
+                    {
+                        issuesToAdd.Add(issue);
+                    }
+                }
+                filterResponse.postsIssues.Add(new PostIssue(post, issuesToAdd));
+            }
+
+            //Return the results
+            return filterResponse;
         }
 
         //This mehotd fills the stats, it is implemented like this because it is used in two methods and honestly thats the best way I found
@@ -250,7 +398,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                                     }
                                 }
                             }
-                        }  
+                        }
                     }
                     conn.Close();
 
