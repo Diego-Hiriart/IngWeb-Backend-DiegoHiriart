@@ -1,5 +1,5 @@
 # IngWeb-Backend-DiegoHiriart
-Backend del proyecto de ingeniería web
+Backend for the Web Engineering course
 
 ### This API is deployed in Heroku, you can find it here:
   -  https://ingweb-back-hiriart.herokuapp.com/
