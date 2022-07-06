@@ -26,4 +26,11 @@ There are essentially two types of endpoints you can use:
  - Authorization-less endpoints, which you can just use without sending a token in the authorization header.
 
 # Core functionality of the project
+This project essentially consists of a web site to post reviews of tech products in general. The purpose of this project is to offer a repository that users can go to when they need to research a product's potential issues and how long it will last. A site like this would be especially useful when looking to buy a new tech product, since ideally you want something that lasts and isn't difficult to maintain. Because of this, the web site is not limited to plain text or score-based reviews and allows users to add the product's life span and issues when making a review. The information posted by users when reviewing can then be used by others to look up which products are best suited for their needs.
 
+As mentioned, users will be able to post reviews with details regarding the life span their specific instance of the product had, how long it lasted without presenting issues, and the issues themselves (these are problems with the product, e.g., a faulty RAM stick). These posts feed the repository for the web site and are the main source of information for people doing research about a specific model or looking for products that match ceratin filters. When users are researching products, they can either view durability and issue data for a specific model, or search for models that meet criteria for life span, time without issues, number of reviews, percentage of issues with reviews, and percentage of those issues that can be fixed.
+
+To ensure that there aren´t several copies of the same product, brand, or component, users can only choose from a list of these, which have been previously defined (and must be kept updated) by the administrators. Mainly, this avoids situations in which products are called differently by different people, but from a model number perspective they are the same. The administrators' role doesn't extend much further than this, they can use the platform like a regular user besides these and user management (deletion and admin privileges) functionalities.
+
+# Contact
+[hiriart.leon.d@gmail.com](mailto:hiriart.leon.d@gmail.com)
