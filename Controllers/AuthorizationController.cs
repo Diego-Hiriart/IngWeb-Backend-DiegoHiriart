@@ -9,19 +9,29 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using WebAPI_DiegoHiriart.Models;
+using WebAPI_DiegoHiriart.Settings;
 
 namespace WebAPI_DiegoHiriart.Controllers
 {
     [Route("api/auth")]
     [ApiController]
     public class AuthorizationController : ControllerBase
-    {
-        public AuthorizationController() { }
+    {        
+        //A constructor for this class is needed so that when it is called the config and environment info needed are passed
+        public AuthorizationController(IConfiguration config, IWebHostEnvironment env)
+        {
+            this.config = config;
+            this.env = env;
+            this.db = new AppSettings(this.config, this.env).DBConn;
+        }
+        //These configurations and environment info are needed to create a DBConfig instance that has the right connection string depending on whether the app is running on a development or production environment
+        private readonly IConfiguration config;
+        private readonly IWebHostEnvironment env;
+        private string db;//Connection string
 
         [HttpPost("login")]
         public async Task<ActionResult<string>> Login(Credentials request)
         {
-            string db = APIConfig.ConnectionString;
             //COLLATE SQL_Latin1_General_CP1_CS_AS allows case sentitive compare, not needed for PostgreSQL
             string checkUserExists = "SELECT * FROM users WHERE email = @0 OR username = @0";
             User user = new User();
@@ -124,7 +134,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                 Debug.WriteLine("Regular user token creation");
             }   
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(APIConfig.Token));//New key using the key from APIConfig
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config.GetValue<string>("Token")));//New key using the key from settings
 
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
 

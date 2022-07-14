@@ -6,6 +6,7 @@ using System.Diagnostics;
 using WebAPI_DiegoHiriart.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using WebAPI_DiegoHiriart.Settings;
 
 namespace WebAPI_DiegoHiriart.Controllers
 {
@@ -13,12 +14,23 @@ namespace WebAPI_DiegoHiriart.Controllers
     [ApiController]
     public class PostsController : ControllerBase
     {
-        private string userDataClaim = ClaimTypes.UserData;
+        //A constructor for this class is needed so that when it is called the config and environment info needed are passed
+        public PostsController(IConfiguration config, IWebHostEnvironment env)
+        {
+            this.config = config;
+            this.env = env;
+            this.db = new AppSettings(this.config, this.env).DBConn;
+        }
+        //These configurations and environment info are needed to create a DBConfig instance that has the right connection string depending on whether the app is running on a development or production environment
+        private readonly IConfiguration config;
+        private readonly IWebHostEnvironment env;
+        private string db;//Connection string
+
+        private readonly string userDataClaim = ClaimTypes.UserData;
 
         [HttpPost, Authorize]
         public async Task<ActionResult<List<Post>>> CreatePost(Post post)
         {
-            string db = APIConfig.ConnectionString;
             string createPost = "INSERT INTO posts(userid, modelid, postdate, purchase, firstissues, innoperative, review) " +
                 "VALUES(@0, @1, @2, @3, @4, @5, @6)";
             string checkExisting = "SELECT COUNT(*) FROM posts WHERE modelid = @0 AND userid = @1";//Part of the control to see that each user makes only one post per model
@@ -93,7 +105,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         public async Task<ActionResult<List<Post>>> GetAll()
         {
             List<Post> posts = new List<Post>();
-            string db = APIConfig.ConnectionString;
             string getPosts = "SELECT * FROM posts";
             try
             {
@@ -139,7 +150,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         public async Task<ActionResult<List<Post>>> GetByUser(Int64 id)
         {
             List<Post> posts = new List<Post>();
-            string db = APIConfig.ConnectionString;
             string getPostsByUser = "SELECT * FROM posts WHERE userid = @0";
             try
             {
@@ -189,7 +199,6 @@ namespace WebAPI_DiegoHiriart.Controllers
             Int64 userId = this.TokenUserId(Request);
 
             List<Post> posts = new List<Post>();
-            string db = APIConfig.ConnectionString;
             string getPostsByUser = "SELECT * FROM posts WHERE userid = @0";
             try
             {
@@ -236,7 +245,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         public async Task<ActionResult<List<Post>>> GetById(Int64 id)
         {
             List<Post> posts = new List<Post>();
-            string db = APIConfig.ConnectionString;
             string getPostsByUser = "SELECT * FROM posts WHERE postid = @0";
             try
             {
@@ -283,7 +291,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         public async Task<ActionResult<List<Post>>> GetByModel(Int64 id)
         {
             List<Post> posts = new List<Post>();
-            string db = APIConfig.ConnectionString;
             string getPostsByModel = "SELECT * FROM posts WHERE modelid = @0";
             try
             {
@@ -329,7 +336,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         [HttpPut, Authorize]
         public async Task<ActionResult<List<Post>>> UpdatePost(Post post)
         {
-            string db = APIConfig.ConnectionString;
             string updatePost = "UPDATE posts SET modelid=@0, postdate=@1, purchase=@2, firstissues=@3, " +
                 "innoperative=@4, review=@5 WHERE postid = @6";
 
@@ -396,7 +402,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         [HttpDelete("{id}"), Authorize]
         public async Task<IActionResult> DeletePost(Int64 id)
         {            
-            string db = APIConfig.ConnectionString;
             string findPostAuthor = "SELECT userid FROM posts WHERE postid = @0";
             string deletePost = "DELETE FROM posts WHERE postid = @0";
             Int64 postAuthorId = 0;

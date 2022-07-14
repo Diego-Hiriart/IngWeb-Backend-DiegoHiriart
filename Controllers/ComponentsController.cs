@@ -4,6 +4,7 @@ using System.Data;
 using Npgsql;
 using System.Diagnostics;
 using WebAPI_DiegoHiriart.Models;
+using WebAPI_DiegoHiriart.Settings;
 
 namespace WebAPI_DiegoHiriart.Controllers
 {
@@ -11,10 +12,21 @@ namespace WebAPI_DiegoHiriart.Controllers
     [ApiController]
     public class ComponentsController : ControllerBase
     {
+        //A constructor for this class is needed so that when it is called the config and environment info needed are passed
+        public ComponentsController(IConfiguration config, IWebHostEnvironment env)
+        {
+            this.config = config;
+            this.env = env;
+            this.db = new AppSettings(this.config, this.env).DBConn;
+        }
+        //These configurations and environment info are needed to create a DBConfig instance that has the right connection string depending on whether the app is running on a development or production environment
+        private readonly IConfiguration config;
+        private readonly IWebHostEnvironment env;
+        private string db;//Connection string
+
         [HttpPost, Authorize(Roles = "admin")]
         public async Task<ActionResult<List<Component>>> CreateComponent(Component component)
         {
-            string db = APIConfig.ConnectionString;
             string createComponent = "INSERT INTO components(name, description) VALUES(@0, @1)";
             try
             {
@@ -46,7 +58,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         public async Task<ActionResult<List<Component>>> SearchComponent(int id)
         {
             List<Component> components = new List<Component>();
-            string db = APIConfig.ConnectionString;
             string searchComponent = "SELECT * FROM components WHERE componentid = @0";
             try
             {
@@ -88,7 +99,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         public async Task<ActionResult<List<Component>>> GetAll()
         {
             List<Component> components = new List<Component>();
-            string db = APIConfig.ConnectionString;
             string getComponents = "SELECT * FROM components";
             try
             {
@@ -128,7 +138,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         [HttpPut, Authorize(Roles = "admin")]
         public async Task<ActionResult<List<Component>>> UpdateComponent(Component component)
         {
-            string db = APIConfig.ConnectionString;
             string updateComponent = "UPDATE components SET name=@0, description=@1 WHERE componentid = @2";
             try
             {
@@ -166,7 +175,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         [HttpDelete("{id}"), Authorize(Roles = "admin")]
         public async Task<IActionResult> DeleteComponent(int id)
         {
-            string db = APIConfig.ConnectionString;
             string deleteComponent = "DELETE FROM components WHERE componentid = @0";
             try
             {

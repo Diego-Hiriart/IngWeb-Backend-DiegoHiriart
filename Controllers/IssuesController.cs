@@ -6,6 +6,7 @@ using System.Diagnostics;
 using WebAPI_DiegoHiriart.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using WebAPI_DiegoHiriart.Settings;
 
 namespace WebAPI_DiegoHiriart.Controllers
 {
@@ -13,12 +14,23 @@ namespace WebAPI_DiegoHiriart.Controllers
     [ApiController]
     public class IssuesController : ControllerBase
     {
-        private string userDataClaim = ClaimTypes.UserData;
+        //A constructor for this class is needed so that when it is called the config and environment info needed are passed
+        public IssuesController(IConfiguration config, IWebHostEnvironment env)
+        {
+            this.config = config;
+            this.env = env;
+            this.db = new AppSettings(this.config, this.env).DBConn;
+        }
+        //These configurations and environment info are needed to create a DBConfig instance that has the right connection string depending on whether the app is running on a development or production environment
+        private readonly IConfiguration config;
+        private readonly IWebHostEnvironment env;
+        private string db;//Connection string
+
+        private readonly string userDataClaim = ClaimTypes.UserData;
 
         [HttpPost, Authorize]
         public async Task<ActionResult<List<Issue>>> CreateIssue(Issue issue)
         {
-            string db = APIConfig.ConnectionString;
             string createIssue = "INSERT INTO issues(postid, componentid, issuedate, isfixable, description) " +
                 "VALUES(@0, @1, @2, @3, @4)";
             string checkAuthor = "SELECT userid FROM posts WHERE postid = @0";//To compare the current user with the one that made the post to which an issue is to be added
@@ -87,7 +99,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         public async Task<ActionResult<List<Issue>>> GetAll()
         {
             List<Issue> issues = new List<Issue>();
-            string db = APIConfig.ConnectionString;
             string getIssues = "SELECT * FROM issues";
             try
             {
@@ -131,7 +142,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         public async Task<ActionResult<List<Issue>>> GetByPost(Int64 id)
         {
             List<Issue> issues = new List<Issue>();
-            string db = APIConfig.ConnectionString;
             string getIssues = "SELECT * FROM issues WHERE postid = @0";
             try
             {
@@ -176,7 +186,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         public async Task<ActionResult<List<Post>>> GetByModel(Int64 id)
         {
             List<Issue> issues = new List<Issue>();
-            string db = APIConfig.ConnectionString;
             string getIssues = "SELECT i.* FROM issues i INNER JOIN posts p ON p.postid = i.postid WHERE p.modelid = @0";
             try
             {
@@ -219,7 +228,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         [HttpPut, Authorize]
         public async Task<ActionResult<List<Issue>>> UpdateIssue(Issue issue)
         {
-            string db = APIConfig.ConnectionString;
             string updateIssue = "UPDATE issues SET componentid=@0, issuedate=@1, isfixable=@2, " +
                 "description=@3 WHERE issueid = @4";
             string checkAuthor = "SELECT p.userid FROM issues i INNER JOIN posts p ON p.postid = i.postid WHERE i.issueid = @0";
@@ -299,7 +307,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         [HttpDelete("{id}"), Authorize]
         public async Task<IActionResult> DeleteIssue(Int64 id)
         {
-            string db = APIConfig.ConnectionString;
             string deleteIssue = "DELETE FROM issues WHERE issueid = @0";
             string checkAuthor = "SELECT p.userid FROM issues i INNER JOIN posts p ON p.postid = i.postid WHERE i.issueid = @0";
             Int64 issueAuthor = 0;
