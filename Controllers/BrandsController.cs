@@ -4,6 +4,7 @@ using Npgsql;
 using System.Diagnostics;
 using WebAPI_DiegoHiriart.Models;
 using Microsoft.AspNetCore.Authorization;
+using WebAPI_DiegoHiriart.Settings;
 
 namespace WebAPI_DiegoHiriart.Controllers
 {
@@ -11,10 +12,21 @@ namespace WebAPI_DiegoHiriart.Controllers
     [Route("api/brands")]
     public class BrandsController : ControllerBase
     {
+        //A constructor for this class is needed so that when it is called the config and environment info needed are passed
+        public BrandsController(IConfiguration config, IWebHostEnvironment env)
+        {
+            this.config = config;
+            this.env = env;
+            this.db = new AppSettings(this.config, this.env).DBConn;
+        }
+        //These configurations and environment info are needed to create a DBConfig instance that has the right connection string depending on whether the app is running on a development or production environment
+        private readonly IConfiguration config;
+        private readonly IWebHostEnvironment env;
+        private string db;//Connection string
+
         [HttpPost, Authorize(Roles = "admin")]
         public async Task<ActionResult<List<Brand>>> CreateBrand(Brand brand)
         {
-            string db = APIConfig.ConnectionString;
             string createBrand = "INSERT INTO brands(name, isdefunct) VALUES(@0, @1)";
             try
             {
@@ -46,7 +58,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         public async Task<ActionResult<List<Brand>>> GetBrands()
         {
             List<Brand> brands = new List<Brand>();
-            string db = APIConfig.ConnectionString;
             string readBrands = "SELECT * FROM brands";
             try
             {
@@ -87,7 +98,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         public async Task<ActionResult<List<Brand>>> SeachBrand(int id)
         {
             List<Brand> brands = new List<Brand>();
-            string db = APIConfig.ConnectionString;
             string readBrands = "SELECT * FROM brands WHERE brandid = @0";
             try
             {
@@ -128,7 +138,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         [HttpPut, Authorize(Roles = "admin")]
         public async Task<ActionResult<List<Brand>>> UpdateBrand(Brand brand)
         {
-            string db = APIConfig.ConnectionString;
             string updateBrand = "UPDATE brands SET name=@0, isdefunct=@1 WHERE brandid = @2";
             try
             {
@@ -166,7 +175,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         [HttpDelete("{id}"), Authorize(Roles = "admin")]
         public async Task<IActionResult> DeleteBrand(int id)
         {
-            string db = APIConfig.ConnectionString;
             string deleteBrand = "DELETE FROM brands WHERE brandid = @0";
             try
             {

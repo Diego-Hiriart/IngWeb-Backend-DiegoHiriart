@@ -9,20 +9,20 @@ using Swashbuckle.AspNetCore.Filters;
 using System.Text;
 using WebAPI_DiegoHiriart;
 
-var AllowLocalhostOrigins = "AllowLocalhostOrigins";
+var frontEndOrigins = "frontEndOrigins";
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name: AllowLocalhostOrigins,
-                      policy =>
-                      {
-                          policy.WithOrigins("http://localhost:3000")//Only the front end address can use it
-                          .WithHeaders(HeaderNames.ContentType, HeaderNames.Authorization)//Allow content type (to use jsons) and authorization (for login) to be in the header
-                          .WithMethods("POST", "GET", "PUT", "DELETE");//Allow all methods
+    options.AddPolicy(name: frontEndOrigins,
+        policy =>
+        {
+            policy.WithOrigins(builder.Configuration.GetValue<string>("AllowedHosts").Split(";"))//Only the front end address can use it
+            .WithHeaders(HeaderNames.ContentType, HeaderNames.Authorization)//Allow content type (to use jsons) and authorization (for login) to be in the header
+            .WithMethods("POST", "GET", "PUT", "DELETE");//Allow all methods
 
-                      });
+        });
 });
 
 // Add services to the container.
@@ -49,7 +49,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(APIConfig.Token)),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration.GetValue<string>("Token"))),
             ValidateIssuer = false,
             ValidateAudience = false
         };
@@ -67,7 +67,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 //app.UseRouting();//Wasnt here before, added in case CORS needs it, might not be the case
 
-app.UseCors(AllowLocalhostOrigins);//Use the CORS policy, after UseRouting, before UseAuthorization
+app.UseCors(frontEndOrigins);//Use the CORS policy, after UseRouting, before UseAuthorization
 
 app.UseAuthentication();//Authentication middleware, must be above UseAuthorization
 

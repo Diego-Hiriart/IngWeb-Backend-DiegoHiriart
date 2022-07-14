@@ -5,6 +5,7 @@ using Npgsql;
 using System.Diagnostics;
 using WebAPI_DiegoHiriart.Models;
 using System.Text.Json;
+using WebAPI_DiegoHiriart.Settings;
 
 namespace WebAPI_DiegoHiriart.Controllers
 {
@@ -12,10 +13,21 @@ namespace WebAPI_DiegoHiriart.Controllers
     [ApiController]
     public class ProfilesController : ControllerBase
     {
+        //A constructor for this class is needed so that when it is called the config and environment info needed are passed
+        public ProfilesController(IConfiguration config, IWebHostEnvironment env)
+        {
+            this.config = config;
+            this.env = env;
+            this.db = new AppSettings(this.config, this.env).DBConn;
+        }
+        //These configurations and environment info are needed to create a DBConfig instance that has the right connection string depending on whether the app is running on a development or production environment
+        private readonly IConfiguration config;
+        private readonly IWebHostEnvironment env;
+        private string db;//Connection string
+
         [HttpPost, Authorize]
         public async Task<ActionResult<List<Profile>>> CreateProfile(Profile profile)
         {
-            string db = APIConfig.ConnectionString;
             string createProfile = "INSERT INTO profiles(userid, firstname, lastname, bio, isadmin) " +
                 "VALUES(@0, @1, @2, @3, @4)";
             try
@@ -53,7 +65,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         public async Task<ActionResult<List<Profile>>> SearchProfile(Int64 id)
         {
             List<Profile> profiles = new List<Profile>();
-            string db = APIConfig.ConnectionString;
             string searchProfile = "SELECT * FROM profiles WHERE userid = @0";
             try
             {
@@ -96,7 +107,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         [HttpPut("role-control"), Authorize(Roles ="admin")]
         public async Task<ActionResult<List<Object>>> AdminRoleEdit(Int64 id, bool isAdmin)
         {
-            string db = APIConfig.ConnectionString;
             string adminRoleUpdate = "UPDATE profiles SET isadmin=@0 WHERE userid = @1";
             try
             {

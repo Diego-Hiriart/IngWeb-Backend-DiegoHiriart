@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using WebAPI_DiegoHiriart.Models;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
+using WebAPI_DiegoHiriart.Settings;
 
 namespace WebAPI_DiegoHiriart.Controllers
 {
@@ -14,10 +15,21 @@ namespace WebAPI_DiegoHiriart.Controllers
     [Route("api/users")]
     public class UsersController : ControllerBase
     {
+        //A constructor for this class is needed so that when it is called the config and environment info needed are passed
+        public UsersController(IConfiguration config, IWebHostEnvironment env)
+        {
+            this.config = config;
+            this.env = env;
+            this.db = new AppSettings(this.config, this.env).DBConn;
+        }
+        //These configurations and environment info are needed to create a DBConfig instance that has the right connection string depending on whether the app is running on a development or production environment
+        private readonly IConfiguration config;
+        private readonly IWebHostEnvironment env;
+        private string db;//Connection string
+
         [HttpPost]//Maps method to Post request
         public async Task<ActionResult<List<UserDto>>> CreateUser(UserDto user)
         {
-            string db = APIConfig.ConnectionString;
             string createUser = "INSERT INTO users(email, username, passwordhash, passwordsalt) VALUES(@0, @1, @2, @3)";
             string getCreatedUserId = "SELECT userid FROM users WHERE email = @0 AND username = @1 AND passwordhash = @2 AND passwordsalt = @3";
             Int64 newID = 0;
@@ -66,7 +78,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                 }
                 //Create a basic profile when a user is created
                 Profile basicProfile = new Profile(newID, "", "", "", false);
-                ProfilesController profileController = new ProfilesController();
+                ProfilesController profileController = new ProfilesController(config, env);
                 await profileController.CreateProfile(basicProfile);
                 return Ok(user);
             }
@@ -82,7 +94,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         public async Task<ActionResult<List<UserDto>>> ReadUsers()
         {
             List<UserDto> users = new List<UserDto>();
-            string db = APIConfig.ConnectionString;
             string readUsers = "SELECT userid, email, username FROM users";
             try
             {
@@ -123,7 +134,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         public async Task<ActionResult<List<UserDto>>> ReadUserEmailFullMatch(string email)
         {
             List<UserDto> users = new List<UserDto>();
-            string db = APIConfig.ConnectionString;
             string readUsers = "SELECT userid, email, username FROM users WHERE email = @0";
             try
             {
@@ -169,7 +179,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         public async Task<ActionResult<List<UserDto>>> ReadUserEmailPartialMatch(string email)
         {
             List<UserDto> users = new List<UserDto>();
-            string db = APIConfig.ConnectionString;
             string readUsers = "SELECT userid, email, username FROM users WHERE email LIKE @0";//WHERE string LIKE %substring%
             try
             {
@@ -214,7 +223,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         [HttpPut, Authorize]//Maps the method to PUT, that is update a User
         public async Task<IActionResult> UpdateUser(UserDto user)
         {
-            string db = APIConfig.ConnectionString;
             string updateUser = "UPDATE users SET email=@0, username=@1, passwordhash=@2, passwordsalt=@3 WHERE userid = @4";
             if (string.IsNullOrEmpty(user.Email) || string.IsNullOrEmpty(user.Password)
                 || string.IsNullOrEmpty(user.Username))//Do no alter if data not complete
@@ -262,7 +270,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         [HttpDelete("{id}"), Authorize(Roles = "admin")]//Maps the method to DELETE by id
         public async Task<IActionResult> DeleteUser(Int64 id)//Deletes the user profile too, it is configured like that in the DB
         {
-            string db = APIConfig.ConnectionString;
             string deleteUser = "DELETE FROM users WHERE userid = @0";
             try
             {

@@ -4,6 +4,7 @@ using Npgsql;
 using System.Diagnostics;
 using WebAPI_DiegoHiriart.Models;
 using System.Linq;
+using WebAPI_DiegoHiriart.Settings;
 
 namespace WebAPI_DiegoHiriart.Controllers
 {
@@ -11,6 +12,18 @@ namespace WebAPI_DiegoHiriart.Controllers
     [Route("api/stats")]
     public class StatisticsController : ControllerBase
     {
+        //A constructor for this class is needed so that when it is called the config and environment info needed are passed
+        public StatisticsController(IConfiguration config, IWebHostEnvironment env)
+        {
+            this.config = config;
+            this.env = env;
+            this.db = new AppSettings(this.config, this.env).DBConn;
+        }
+        //These configurations and environment info are needed to create a DBConfig instance that has the right connection string depending on whether the app is running on a development or production environment
+        private readonly IConfiguration config;
+        private readonly IWebHostEnvironment env;
+        private string db;//Connection string
+
         [HttpGet("by-model/{id}")]
         public async Task<ActionResult<StatsInfo>> ModelStats(Int64 id)
         {
@@ -22,7 +35,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         [HttpPost("filter")]
         public async Task<ActionResult<FilterResponse>> FilterSearch(FilterRequest request)
         {
-            string db = APIConfig.ConnectionString;
             string readModelIds = "SELECT DISTINCT modelid FROM posts";//Get only models that have been reviewed
             List<Int64> modelIds = new List<Int64>();
             List<StatsInfo> unfilteredResults = new List<StatsInfo>();
@@ -119,7 +131,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         [HttpPost("date-fixable-filter")]
         public async Task<ActionResult<DateFixableFilterResponse>> DateFixableFilter(DateFixableFilterRequest request)
         {
-            string db = APIConfig.ConnectionString;
             string readPosts = "SELECT * FROM posts";//Get only models that have been reviewed
             string readIssues = "SELECT * FROM issues WHERE postid IN (@0)";
             string postIdList = "";
@@ -265,7 +276,6 @@ namespace WebAPI_DiegoHiriart.Controllers
             List<Component> components = new List<Component>();
             StatsInfo statsInfo = new StatsInfo();
 
-            string db = APIConfig.ConnectionString;
             string readModel = "SELECT * FROM models WHERE modelid = @0";
             string readBrand = "SELECT * FROM brands WHERE brandid = @0";
             string readPosts = "SELECT * FROM posts WHERE modelid = @0";

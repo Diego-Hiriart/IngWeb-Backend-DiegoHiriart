@@ -4,6 +4,7 @@ using Npgsql;
 using System.Diagnostics;
 using WebAPI_DiegoHiriart.Models;
 using Microsoft.AspNetCore.Authorization;
+using WebAPI_DiegoHiriart.Settings;
 
 namespace WebAPI_DiegoHiriart.Controllers
 {
@@ -11,10 +12,21 @@ namespace WebAPI_DiegoHiriart.Controllers
     [Route("api/models")]
     public class ModelsController : ControllerBase
     {
+        //A constructor for this class is needed so that when it is called the config and environment info needed are passed
+        public ModelsController(IConfiguration config, IWebHostEnvironment env)
+        {
+            this.config = config;
+            this.env = env;
+            this.db = new AppSettings(this.config, this.env).DBConn;
+        }
+        //These configurations and environment info are needed to create a DBConfig instance that has the right connection string depending on whether the app is running on a development or production environment
+        private readonly IConfiguration config;
+        private readonly IWebHostEnvironment env;
+        private string db;//Connection string
+
         [HttpPost, Authorize(Roles = "admin")]
         public async Task<ActionResult<List<Model>>> CreateModel(Model model)
         {
-            string db = APIConfig.ConnectionString;
             string createModel = "INSERT INTO models(brandid, modelnumber, name, launch, discontinued) VALUES(@0, @1, @2, @3, @4)";
             try
             {
@@ -49,7 +61,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         public async Task<ActionResult<List<Model>>> GetAllModels()
         {
             List<Model> models = new List<Model>();
-            string db = APIConfig.ConnectionString;
             string readModels = "SELECT * FROM models";
             try
             {
@@ -93,7 +104,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         public async Task<ActionResult<List<Model>>> Search(Int64 id)
         {
             List<Model> models = new List<Model>();
-            string db = APIConfig.ConnectionString;
             string readModels = "SELECT * FROM models WHERE modelid = @0";
             try
             {
@@ -138,7 +148,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         public async Task<ActionResult<List<Model>>> GetModelsByBrand(int brandid)
         {
             List<Model> models = new List<Model>();
-            string db = APIConfig.ConnectionString;
             string readModels = "SELECT * FROM models WHERE brandid = @0";
             try
             {
@@ -182,7 +191,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         [HttpPut, Authorize(Roles = "admin")]
         public async Task<ActionResult<List<Model>>> UpdateModel(Model model)
         {
-            string db = APIConfig.ConnectionString;
             string updateModel = "UPDATE models SET brandid=@0, modelnumber=@1, name=@2, launch=@3, discontinued=@4 WHERE modelid = @5";
             try
             {
@@ -223,7 +231,6 @@ namespace WebAPI_DiegoHiriart.Controllers
         [HttpDelete("{id}"), Authorize(Roles = "admin")]
         public async Task<IActionResult> DeleteModel(Int64 id)
         {
-            string db = APIConfig.ConnectionString;
             string deleteModel = "DELETE FROM models WHERE modelid = @0";
             try
             {
