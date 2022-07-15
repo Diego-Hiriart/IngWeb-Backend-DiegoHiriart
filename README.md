@@ -32,5 +32,11 @@ As mentioned, users will be able to post reviews with details regarding the life
 
 To ensure that there aren´t several copies of the same product, brand, or component, users can only choose from a list of these, which have been previously defined (and must be kept updated) by the administrators. Mainly, this avoids situations in which products are called differently by different people, but from a model number perspective they are the same. The administrators' role doesn't extend much further than this, they can use the platform like a regular user besides these and user management (deletion and admin privileges) functionalities.
 
+# Useful resources / Documentation
+  - [Enable Cross-Origin Requests (CORS) in ASP.NET Core](https://docs.microsoft.com/en-us/aspnet/core/security/cors?view=aspnetcore-6.0)
+  - [CRUD with a .NET 6 Web API & Entity Framework Core 🚀 Full Course](https://youtu.be/Fbf_ua2t6v4)
+  - [.NET 6 Web API 🔒 Create JSON Web Tokens (JWT) - User Registration / Login / Authentication](https://youtu.be/v7q3pEK1EA0)
+  - [.NET 6 Web API 🔒 Role-Based Authorization with JSON Web Tokens (JWT)](https://youtu.be/TDY_DtTEkes)
+
 # Contact
 [hiriart.leon.d@gmail.com](mailto:hiriart.leon.d@gmail.com)
