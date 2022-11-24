@@ -7,11 +7,15 @@ using Microsoft.Net.Http.Headers;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.Filters;
 using System.Text;
-using WebAPI_DiegoHiriart;
+using Auth0.AspNetCore.Authentication;
+using Microsoft.IdentityModel.Logging;
 
 var frontEndOrigins = "frontEndOrigins";
 
 var builder = WebApplication.CreateBuilder(args);
+
+//For auth0 redirections
+IdentityModelEventSource.ShowPII = true;
 
 builder.Services.AddCors(options =>
 {
@@ -54,6 +58,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = false
         };
     });
+
+//Add Auth0
+//Cookie configuration for HTTPS
+builder.Services.Configure<CookiePolicyOptions>(options =>
+{
+    options.MinimumSameSitePolicy = Microsoft.AspNetCore.Http.SameSiteMode.None;
+});
+
+builder.Services.AddAuth0WebAppAuthentication(options =>
+{
+    options.Domain = builder.Configuration["Auth0:Domain"];
+    options.ClientId = builder.Configuration["Auth0:ClientId"];
+});
 
 var app = builder.Build();
 

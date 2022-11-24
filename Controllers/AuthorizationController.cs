@@ -10,13 +10,15 @@ using System.Security.Cryptography;
 using System.Text;
 using WebAPI_DiegoHiriart.Models;
 using WebAPI_DiegoHiriart.Settings;
+using Microsoft.AspNetCore.Authentication;
+using Auth0.AspNetCore.Authentication;
 
 namespace WebAPI_DiegoHiriart.Controllers
 {
     [Route("api/auth")]
     [ApiController]
     public class AuthorizationController : ControllerBase
-    {        
+    {
         //A constructor for this class is needed so that when it is called the config and environment info needed are passed
         public AuthorizationController(IConfiguration config, IWebHostEnvironment env)
         {
@@ -29,6 +31,19 @@ namespace WebAPI_DiegoHiriart.Controllers
         private readonly IWebHostEnvironment env;
         private string db;//Connection string
 
+        [HttpGet("auth0-login")]
+        public async Task Auth0Login(string returnURL = "http://localhost:3000")
+        {
+            // Indicate here where Auth0 should redirect the user after a login.
+            // Note that the resulting absolute Uri must be added to the
+            // Allowed Callback URLs settings for the app.
+            var authenticationProperties = new LoginAuthenticationPropertiesBuilder()
+            .WithRedirectUri(returnURL)
+            .Build();
+
+            await HttpContext.ChallengeAsync(Auth0Constants.AuthenticationScheme, authenticationProperties);
+        }
+
         [HttpPost("login")]
         public async Task<ActionResult<string>> Login(Credentials request)
         {
@@ -36,6 +51,7 @@ namespace WebAPI_DiegoHiriart.Controllers
             string checkUserExists = "SELECT * FROM users WHERE email = @0 OR username = @0";
             User user = new User();
             bool isAdmin = false;
+            bool localAccount = false;
             try
             {
                 bool userFound = false;
@@ -59,17 +75,17 @@ namespace WebAPI_DiegoHiriart.Controllers
                                     user.Username = reader[2] as string;
                                     user.PasswordHash = reader[3] as byte[];
                                     user.PasswordSalt = reader[4] as byte[];
-                                }                                
+                                }
                             }
                         }
                     }
-                    
+
                     if (userFound)//If the user was found, now check if they are an administrator
                     {
 
                         using (NpgsqlCommand cmd = conn.CreateCommand())
                         {
-                            string getProfile = "SELECT isadmin FROM profiles WHERE userid = @0";
+                            string getProfile = "SELECT isadmin, localaccount FROM profiles WHERE userid = @0";
                             cmd.CommandText = getProfile;
                             cmd.Parameters.AddWithValue("@0", user.UserID);
                             using (NpgsqlDataReader reader = cmd.ExecuteReader())
@@ -77,17 +93,18 @@ namespace WebAPI_DiegoHiriart.Controllers
                                 while (reader.Read())
                                 {
                                     isAdmin = reader.GetBoolean(0);
+                                    localAccount = reader.GetBoolean(1);
                                 }
                             }
                         }
                     }
                     conn.Close();
                 }
-                if (!userFound)//If the user was not foun (no rows in the reader), return bad request
+                if (!userFound || !localAccount)//If the user was not foun (no rows in the reader), return bad request
                 {
                     return BadRequest("The user does not exist");
                 }
-            }           
+            }
             catch (Exception eSql)
             {
                 Debug.WriteLine("Exception: " + eSql.Message);
@@ -101,13 +118,30 @@ namespace WebAPI_DiegoHiriart.Controllers
             else
             {
                 return BadRequest("Wrong password");
-            }     
+            }
         }
 
         [HttpPost("check"), Authorize(Roles = "admin")]
         public async Task<IActionResult> CheckAdminRole()//If the function returns anythng but ok, client will know token is not valid, user hasnt logged in, or is forbidden
         {
             return Ok("Is logged in, token valid, role valid");
+        }
+
+        [HttpGet("auth0-check")]
+        public async Task<ActionResult> CheckAuth0()
+        {
+            var name = User.Identity.Name;
+            var email = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+            if (name != null && email != null)
+            {
+                UsersController userController = new UsersController(this.config, this.env);
+                //Create new user and profile
+                var creationResult = await userController.Profile();
+                UserDto user = creationResult.Value;
+                List<byte[]> passwordHashes = Utils.CreatePasswordHash(user.Password);
+                return Ok(this.CreateToken(new User(user.UserID, user.Email, user.Username, passwordHashes[0], passwordHashes[1]), false));
+            }
+            return StatusCode(401, new List<string>{name, email});
         }
 
         private string CreateToken(User user, bool isAdmin)
@@ -132,7 +166,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                     new Claim(ClaimTypes.Role, "regular")//Add the "Admin" role to the token
                 };
                 Debug.WriteLine("Regular user token creation");
-            }   
+            }
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config.GetValue<string>("Token")));//New key using the key from settings
 

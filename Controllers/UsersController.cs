@@ -3,11 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using System.Data;
 using Npgsql;
 using System.Diagnostics;
-using System.Security.Cryptography;
 using WebAPI_DiegoHiriart.Models;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using WebAPI_DiegoHiriart.Settings;
+using System.Security.Claims;
 
 namespace WebAPI_DiegoHiriart.Controllers
 {
@@ -22,6 +22,7 @@ namespace WebAPI_DiegoHiriart.Controllers
             this.env = env;
             this.db = new AppSettings(this.config, this.env).DBConn;
         }
+
         //These configurations and environment info are needed to create a DBConfig instance that has the right connection string depending on whether the app is running on a development or production environment
         private readonly IConfiguration config;
         private readonly IWebHostEnvironment env;
@@ -38,7 +39,7 @@ namespace WebAPI_DiegoHiriart.Controllers
             {
                 return BadRequest("Incomplete data");
             }
-            List<byte[]> passwordHashes = CreatePasswordHash(user.Password);
+            List<byte[]> passwordHashes = Utils.CreatePasswordHash(user.Password);
             User userDb = new User(user.UserID, user.Email, user.Username,
                 passwordHashes[0], passwordHashes[1]);
             try
@@ -77,7 +78,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                     conn.Close();
                 }
                 //Create a basic profile when a user is created
-                Profile basicProfile = new Profile(newID, "", "", "", false);
+                Profile basicProfile = new Profile(newID, "", "", "", false, true);
                 ProfilesController profileController = new ProfilesController(config, env);
                 await profileController.CreateProfile(basicProfile);
                 return Ok(user);
@@ -86,6 +87,65 @@ namespace WebAPI_DiegoHiriart.Controllers
             {
                 Debug.WriteLine("Exception: " + eSql.Message);
                 return StatusCode(500, user);
+            }
+        }
+
+        [HttpGet("auth0-profile")]
+        public async Task<ActionResult<UserDto>> Profile()
+        {
+            var name = User.Identity.Name;
+            var email = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+            string createUser = "INSERT INTO users(email, username, passwordhash, passwordsalt) VALUES(@0, @1, @2, @3)";
+            string getCreatedUserId = "SELECT userid FROM users WHERE email = @0 AND username = @1 AND passwordhash = @2 AND passwordsalt = @3";
+            Int64 newID = 0;
+            List<byte[]> passwordHashes = Utils.CreatePasswordHash("");
+            User userDb = new User(newID, email, name,
+                passwordHashes[0], passwordHashes[1]);
+            try
+            {
+                using (NpgsqlConnection conn = new NpgsqlConnection(db))
+                {
+                    conn.Open();
+                    if (conn.State == ConnectionState.Open)
+                    {
+                        using (NpgsqlCommand cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = createUser;
+                            cmd.Parameters.AddWithValue("@0", userDb.Email);//Replace the parameters of the string
+                            cmd.Parameters.AddWithValue("@1", userDb.Username);
+                            cmd.Parameters.AddWithValue("@2", userDb.PasswordHash);
+                            cmd.Parameters.AddWithValue("@3", userDb.PasswordSalt);
+                            cmd.ExecuteNonQuery();
+                        }
+
+                        using (NpgsqlCommand cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = getCreatedUserId;
+                            cmd.Parameters.AddWithValue("@0", userDb.Email);//Replace the parameters of the string
+                            cmd.Parameters.AddWithValue("@1", userDb.Username);
+                            cmd.Parameters.AddWithValue("@2", userDb.PasswordHash);
+                            cmd.Parameters.AddWithValue("@3", userDb.PasswordSalt);
+                            using (NpgsqlDataReader reader = cmd.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    newID = reader.GetInt64(0);
+                                }
+                            }
+                        }
+                    }
+                    conn.Close();
+                }
+                //Create a basic profile when a user is created
+                Profile basicProfile = new Profile(newID, "", "", "", false, false);
+                ProfilesController profileController = new ProfilesController(config, env);
+                await profileController.CreateProfile(basicProfile);
+                return Ok(new UserDto(userDb.UserID, userDb.Email, userDb.Username, ""));
+            }
+            catch (Exception eSql)
+            {
+                Debug.WriteLine("Exception: " + eSql.Message);
+                return StatusCode(500, new UserDto(userDb.UserID, userDb.Email, userDb.Username, ""));
             }
         }
 
@@ -190,7 +250,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                         using (NpgsqlCommand cmd = conn.CreateCommand())
                         {
                             cmd.CommandText = readUsers;
-                            cmd.Parameters.AddWithValue("@0", "%"+email+"%");//%substring%
+                            cmd.Parameters.AddWithValue("@0", "%" + email + "%");//%substring%
                             using (NpgsqlDataReader reader = cmd.ExecuteReader())
                             {
                                 while (reader.Read())
@@ -210,7 +270,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                 if (users.Count > 0)
                 {
                     return Ok(users);
-                }               
+                }
             }
             catch (Exception eSql)
             {
@@ -229,8 +289,8 @@ namespace WebAPI_DiegoHiriart.Controllers
             {
                 return BadRequest("Incomplete data or non-existent user");
             }
-            List<byte[]> passwordHashes = CreatePasswordHash(user.Password);
-            User userDb = new User(user.UserID, user.Email, user.Username, 
+            List<byte[]> passwordHashes = Utils.CreatePasswordHash(user.Password);
+            User userDb = new User(user.UserID, user.Email, user.Username,
                 passwordHashes[0], passwordHashes[1]);
             try
             {
@@ -248,7 +308,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             cmd.Parameters.AddWithValue("@2", userDb.PasswordHash);
                             cmd.Parameters.AddWithValue("@3", userDb.PasswordSalt);
                             cmd.Parameters.AddWithValue("@4", userDb.UserID);
-                            affectedRows = cmd.ExecuteNonQuery();                         
+                            affectedRows = cmd.ExecuteNonQuery();
                         }
                     }
                     conn.Close();
@@ -257,7 +317,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                 {
                     return Ok(user);
                 }
-                
+
             }
             catch (Exception eSql)
             {
@@ -300,18 +360,6 @@ namespace WebAPI_DiegoHiriart.Controllers
                 return StatusCode(500);
             }
             return BadRequest("User not found");
-        }
-
-        private List<byte[]> CreatePasswordHash(string password)
-        {
-            byte[] passwordHash;
-            byte[] passwordSalt;
-            using (var hmac = new HMACSHA512())//hmac is a cryptography algorithm it uses any key here, SHA512 hash is 64 bytes and secret key 128, database must store the same sizes or the trailing zeros change the value
-            {
-                passwordSalt = hmac.Key;//Random key for cryptography
-                passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
-            }
-            return new List<byte[]> { passwordHash, passwordSalt };
         }
     }
 
