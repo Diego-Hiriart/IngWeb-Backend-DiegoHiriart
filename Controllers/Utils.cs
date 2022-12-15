@@ -1,11 +1,30 @@
+using System.Data;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using Npgsql;
+using WebAPI_DiegoHiriart.Models;
+using WebAPI_DiegoHiriart.Settings;
 
 namespace WebAPI_DiegoHiriart.Controllers
 {
-   public static class Utils
+    public class Utils
     {
-        public static List<byte[]> CreatePasswordHash(string password)
+
+        //A constructor for this class is needed so that when it is called the config and environment info needed are passed
+        public Utils(IConfiguration config, IWebHostEnvironment env)
+        {
+            this.config = config;
+            this.env = env;
+            this.db = new AppSettings(this.config, this.env).DBConn;
+        }
+
+        //These configurations and environment info are needed to create a DBConfig instance that has the right connection string depending on whether the app is running on a development or production environment
+        private readonly IConfiguration config;
+        private readonly IWebHostEnvironment env;
+        private string db;//Connection string
+
+        public List<byte[]> CreatePasswordHash(string password)
         {
             byte[] passwordHash;
             byte[] passwordSalt;

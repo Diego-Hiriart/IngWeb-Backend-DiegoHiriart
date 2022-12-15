@@ -31,17 +31,176 @@ namespace WebAPI_DiegoHiriart.Controllers
         private readonly IWebHostEnvironment env;
         private string db;//Connection string
 
-        [HttpGet("auth0-login")]
-        public async Task Auth0Login(string returnURL = "http://localhost:3000")
+        [HttpPost("auth0-login")]
+        public async Task<ActionResult<UserDto>> Auth0Login(UserDto user)
         {
-            // Indicate here where Auth0 should redirect the user after a login.
-            // Note that the resulting absolute Uri must be added to the
-            // Allowed Callback URLs settings for the app.
-            var authenticationProperties = new LoginAuthenticationPropertiesBuilder()
-            .WithRedirectUri(returnURL)
-            .Build();
+            //Generate a token when Auth0's signing in is used
+            List<UserDto> users = new List<UserDto>();
+            string readUsers = "SELECT userid, email, username FROM users WHERE email = @0";
+            try
+            {
+                using (NpgsqlConnection conn = new NpgsqlConnection(db))
+                {
+                    conn.Open();
+                    if (conn.State == ConnectionState.Open)
+                    {
+                        using (NpgsqlCommand cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = readUsers;
+                            cmd.Parameters.AddWithValue("@0", user.Email);
+                            using (NpgsqlDataReader reader = cmd.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    var usersListItem = new UserDto();
+                                    usersListItem.UserID = reader.GetInt64(0);//Get a long int from the first column
+                                    //Use castings so that nulls get created if needed
+                                    usersListItem.Email = reader[1] as string;
+                                    usersListItem.Username = reader[2] as string;
+                                    users.Add(user);//Add user to list
+                                }
+                            }
+                        }
+                    }
+                    conn.Close();
+                }
+            }
+            catch (Exception eSql)
+            {
+                Debug.WriteLine("Exception: " + eSql.Message);
+                return StatusCode(500);
+            }
+            UserDto userForSearch;
+            //If no users have that email, create that user
+            //Set up variable to search for user in DB, used for token
+            if (users.Count == 0)
+            {
+                //Create user for data passed in body, use it for token
+                UsersController userControl = new UsersController(this.config, this.env);
+                var name = user.Username;
+                var email = user.Email;
+                string createUser = "INSERT INTO users(email, username, passwordhash, passwordsalt) VALUES(@0, @1, @2, @3)";
+                string getCreatedUserId = "SELECT userid FROM users WHERE email = @0 AND username = @1 AND passwordhash = @2 AND passwordsalt = @3";
+                Int64 newID = 0;
+                Utils utils = new Utils(this.config, this.env);
+                List<byte[]> passwordHashes = utils.CreatePasswordHash("");
+                User userDb = new User(newID, email, name,
+                    passwordHashes[0], passwordHashes[1]);
+                try
+                {
+                    using (NpgsqlConnection conn = new NpgsqlConnection(db))
+                    {
+                        conn.Open();
+                        if (conn.State == ConnectionState.Open)
+                        {
+                            using (NpgsqlCommand cmd = conn.CreateCommand())
+                            {
+                                cmd.CommandText = createUser;
+                                cmd.Parameters.AddWithValue("@0", userDb.Email);//Replace the parameters of the string
+                                cmd.Parameters.AddWithValue("@1", userDb.Username);
+                                cmd.Parameters.AddWithValue("@2", userDb.PasswordHash);
+                                cmd.Parameters.AddWithValue("@3", userDb.PasswordSalt);
+                                cmd.ExecuteNonQuery();
+                            }
 
-            await HttpContext.ChallengeAsync(Auth0Constants.AuthenticationScheme, authenticationProperties);
+                            using (NpgsqlCommand cmd = conn.CreateCommand())
+                            {
+                                cmd.CommandText = getCreatedUserId;
+                                cmd.Parameters.AddWithValue("@0", userDb.Email);//Replace the parameters of the string
+                                cmd.Parameters.AddWithValue("@1", userDb.Username);
+                                cmd.Parameters.AddWithValue("@2", userDb.PasswordHash);
+                                cmd.Parameters.AddWithValue("@3", userDb.PasswordSalt);
+                                using (NpgsqlDataReader reader = cmd.ExecuteReader())
+                                {
+                                    while (reader.Read())
+                                    {
+                                        newID = reader.GetInt64(0);
+                                    }
+                                }
+                            }
+                        }
+                        conn.Close();
+                    }
+                    //Create a basic profile when a user is created
+                    Profile basicProfile = new Profile(newID, "", "", "", false, false);
+                    ProfilesController profileController = new ProfilesController(config, env);
+                    await profileController.CreateProfile(basicProfile);
+                }
+                catch (Exception eSql)
+                {
+                    Debug.WriteLine("Exception: " + eSql.Message);
+                    return StatusCode(500);
+                }
+
+            }
+            //Use passed UserDTO for token
+            userForSearch = user;
+            //Create token
+            //COLLATE SQL_Latin1_General_CP1_CS_AS allows case sentitive compare, not needed for PostgreSQL
+            string checkUserExists = "SELECT * FROM users WHERE email = @0 OR username = @0";
+            User dbUser = new User();
+            bool isAdmin = false;
+            Debug.WriteLine(userForSearch.Email);
+            try
+            {
+                bool userFound = false;
+                using (NpgsqlConnection conn = new NpgsqlConnection(db))
+                {
+                    conn.Open();
+                    if (conn.State == ConnectionState.Open)
+                    {
+                        using (NpgsqlCommand cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = checkUserExists;
+                            cmd.Parameters.AddWithValue("@0", userForSearch.Email);//Replace the parameteres of the string
+                            using (NpgsqlDataReader reader = cmd.ExecuteReader())
+                            {
+                                userFound = reader.HasRows;//To know if the user exists there must be rows in the reader if something was found)
+                                while (reader.Read())
+                                {
+                                    //Use castings so that nulls get created if needed
+                                    dbUser.UserID = reader.GetInt64(0);
+                                    dbUser.Email = reader[1] as string;
+                                    dbUser.Username = reader[2] as string;
+                                    dbUser.PasswordHash = reader[3] as byte[];
+                                    dbUser.PasswordSalt = reader[4] as byte[];
+                                }
+                            }
+                        }
+                    }
+
+                    if (userFound)//If the user was found, now check if they are an administrator
+                    {
+
+                        using (NpgsqlCommand cmd = conn.CreateCommand())
+                        {
+                            string getProfile = "SELECT isadmin FROM profiles WHERE userid = @0";
+                            cmd.CommandText = getProfile;
+                            cmd.Parameters.AddWithValue("@0", user.UserID);
+                            using (NpgsqlDataReader reader = cmd.ExecuteReader())
+                            {
+                                while (reader.Read())
+                                {
+                                    isAdmin = reader.GetBoolean(0);
+                                }
+                            }
+                        }
+                    }
+                    conn.Close();
+                }
+                if (!userFound)//If the user was not found (no rows in the reader) or is a user logged in by auth 0, return bad request
+                {
+                    return BadRequest("The user does not exist");
+                }
+            }
+            catch (Exception eSql)
+            {
+                Debug.WriteLine("Exception: " + eSql.Message);
+                return StatusCode(500);
+            }
+            string token = CreateToken(dbUser, isAdmin);
+            return Ok(token);
+
         }
 
         [HttpPost("login")]
@@ -100,7 +259,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                     }
                     conn.Close();
                 }
-                if (!userFound || !localAccount)//If the user was not foun (no rows in the reader), return bad request
+                if (!userFound || !localAccount)//If the user was not found (no rows in the reader) or is a user logged in by auth 0, return bad request
                 {
                     return BadRequest("The user does not exist");
                 }
@@ -127,23 +286,6 @@ namespace WebAPI_DiegoHiriart.Controllers
             return Ok("Is logged in, token valid, role valid");
         }
 
-        [HttpGet("auth0-check")]
-        public async Task<ActionResult> CheckAuth0()
-        {
-            var name = User.Identity.Name;
-            var email = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
-            if (name != null && email != null)
-            {
-                UsersController userController = new UsersController(this.config, this.env);
-                //Create new user and profile
-                var creationResult = await userController.Profile();
-                UserDto user = creationResult.Value;
-                List<byte[]> passwordHashes = Utils.CreatePasswordHash(user.Password);
-                return Ok(this.CreateToken(new User(user.UserID, user.Email, user.Username, passwordHashes[0], passwordHashes[1]), false));
-            }
-            return StatusCode(401, new List<string>{name, email});
-        }
-
         private string CreateToken(User user, bool isAdmin)
         {
             List<Claim> claims;
@@ -162,7 +304,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                 claims = new List<Claim>//Claims describe the user that is authenticated, the store infor from the user
                 {
                     new Claim(ClaimTypes.Name, user.Username),
-                    new Claim(ClaimTypes.UserData, user.UserID.ToString()),
+                    new Claim(ClaimTypes.Email, user.UserID.ToString()),
                     new Claim(ClaimTypes.Role, "regular")//Add the "Admin" role to the token
                 };
                 Debug.WriteLine("Regular user token creation");
@@ -178,7 +320,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                 signingCredentials: creds
                 );
 
-            var jwt = new JwtSecurityTokenHandler().WriteToken(token);//Create the otken
+            var jwt = new JwtSecurityTokenHandler().WriteToken(token);//Create the token
 
             return jwt;
         }

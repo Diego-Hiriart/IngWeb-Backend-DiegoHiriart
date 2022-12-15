@@ -1,14 +1,14 @@
 //Diego Hiriart
 
-//Allow Cross Origin Resource Sharing
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.Net.Http.Headers;
+using Microsoft.Net.Http.Headers;//To allow Cross Origin Resource Sharing
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.Filters;
 using System.Text;
 using Auth0.AspNetCore.Authentication;
 using Microsoft.IdentityModel.Logging;
+using System.Security.Claims;
 
 var frontEndOrigins = "frontEndOrigins";
 
@@ -58,19 +58,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = false
         };
     });
-
-//Add Auth0
-//Cookie configuration for HTTPS
-builder.Services.Configure<CookiePolicyOptions>(options =>
-{
-    options.MinimumSameSitePolicy = Microsoft.AspNetCore.Http.SameSiteMode.None;
-});
-
-builder.Services.AddAuth0WebAppAuthentication(options =>
-{
-    options.Domain = builder.Configuration["Auth0:Domain"];
-    options.ClientId = builder.Configuration["Auth0:ClientId"];
-});
 
 var app = builder.Build();
 

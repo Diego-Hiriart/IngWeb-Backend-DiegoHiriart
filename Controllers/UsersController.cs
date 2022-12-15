@@ -39,7 +39,8 @@ namespace WebAPI_DiegoHiriart.Controllers
             {
                 return BadRequest("Incomplete data");
             }
-            List<byte[]> passwordHashes = Utils.CreatePasswordHash(user.Password);
+            Utils utils = new Utils(this.config, this.env);
+            List<byte[]> passwordHashes = utils.CreatePasswordHash(user.Password);
             User userDb = new User(user.UserID, user.Email, user.Username,
                 passwordHashes[0], passwordHashes[1]);
             try
@@ -90,15 +91,16 @@ namespace WebAPI_DiegoHiriart.Controllers
             }
         }
 
-        [HttpGet("auth0-profile")]
-        public async Task<ActionResult<UserDto>> Profile()
+        [HttpPost("auth0-user")]
+        public async Task<ActionResult<UserDto>> CreateAuth0User(UserDto user)
         {
-            var name = User.Identity.Name;
-            var email = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+            var name = user.Username;
+            var email = user.Email;
             string createUser = "INSERT INTO users(email, username, passwordhash, passwordsalt) VALUES(@0, @1, @2, @3)";
             string getCreatedUserId = "SELECT userid FROM users WHERE email = @0 AND username = @1 AND passwordhash = @2 AND passwordsalt = @3";
             Int64 newID = 0;
-            List<byte[]> passwordHashes = Utils.CreatePasswordHash("");
+            Utils utils = new Utils(this.config, this.env);
+            List<byte[]> passwordHashes = utils.CreatePasswordHash("");
             User userDb = new User(newID, email, name,
                 passwordHashes[0], passwordHashes[1]);
             try
@@ -289,7 +291,8 @@ namespace WebAPI_DiegoHiriart.Controllers
             {
                 return BadRequest("Incomplete data or non-existent user");
             }
-            List<byte[]> passwordHashes = Utils.CreatePasswordHash(user.Password);
+            Utils utils = new Utils(this.config, this.env);
+            List<byte[]> passwordHashes = utils.CreatePasswordHash(user.Password);
             User userDb = new User(user.UserID, user.Email, user.Username,
                 passwordHashes[0], passwordHashes[1]);
             try
