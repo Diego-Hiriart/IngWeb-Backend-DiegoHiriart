@@ -78,7 +78,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                     }
                     conn.Close();
                 }
-                //Create a basic profile when a user is created
+                //Create a basic profile when a  local (not Auth0) user is created
                 Profile basicProfile = new Profile(newID, "", "", "", false, true);
                 ProfilesController profileController = new ProfilesController(config, env);
                 await profileController.CreateProfile(basicProfile);
@@ -138,7 +138,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                     }
                     conn.Close();
                 }
-                //Create a basic profile when a user is created
+                //Create a basic profile when a non-local (Auth0) user is created
                 Profile basicProfile = new Profile(newID, "", "", "", false, false);
                 ProfilesController profileController = new ProfilesController(config, env);
                 await profileController.CreateProfile(basicProfile);
