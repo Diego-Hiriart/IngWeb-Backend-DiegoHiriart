@@ -43,5 +43,5 @@ jobs:
         shell: powershell
         run: |
           .\.sonar\scanner\dotnet-sonarscanner begin /k:"Diego-Hiriart_IngWeb-Backend-DiegoHiriart" /o:"diego-hiriart" /d:sonar.login="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io"
-          .\.sonar\scanner\dotnet-sonarscanner dotnet build
+          dotnet build WebAPI_DiegoHiriart.sln
           .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
