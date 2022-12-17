@@ -310,7 +310,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                 Debug.WriteLine("Regular user token creation");
             }
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config.GetValue<string>("Token")));//New key using the key from settings
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config.GetValue<string>("JWTKey")));//New key using the key from settings
 
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
 
