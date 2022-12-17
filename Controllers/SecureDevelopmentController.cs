@@ -79,8 +79,8 @@ namespace WebAPI_DiegoHiriart.Controllers
                 string keyArn = this.config.GetValue<string>("AWS:KeyARN");
                 //Instantiate keyring input object
                 //Create AWS credentials and region endpoint
-                var accessKey = this.config.GetValue<string>("AWS:accessKeyId");
-                var secretKey = this.config.GetValue<string>("AWS:secretAccessKey");
+                var accessKey = this.config.GetValue<string>("AWS:AccessKeyId");
+                var secretKey = this.config.GetValue<string>("AWS:SecretAccessKey");
                 var credentials = new BasicAWSCredentials(accessKey, secretKey);
                 Amazon.RegionEndpoint regionEnpoint =  Amazon.RegionEndpoint.USEast1;
                 var kmsKeyringInput = new CreateAwsKmsKeyringInput
