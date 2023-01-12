@@ -1,17 +1,22 @@
 //Diego Hiriart
 
-//Allow Cross Origin Resource Sharing
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.Net.Http.Headers;
+using Microsoft.Net.Http.Headers;//To allow Cross Origin Resource Sharing
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.Filters;
 using System.Text;
-using WebAPI_DiegoHiriart;
+using Microsoft.IdentityModel.Logging;
+using Amazon.Extensions.NETCore.Setup;
+using Amazon.S3;
+using Amazon.SQS;
 
 var frontEndOrigins = "frontEndOrigins";
 
 var builder = WebApplication.CreateBuilder(args);
+
+//For auth0 redirections
+IdentityModelEventSource.ShowPII = true;
 
 builder.Services.AddCors(options =>
 {
@@ -49,11 +54,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration.GetValue<string>("Token"))),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration.GetValue<string>("JWTKey"))),
             ValidateIssuer = false,
             ValidateAudience = false
         };
     });
+
+//Set up AWS
+//Get profile info adn credentials
+var awsOptions = builder.Configuration.GetAWSOptions();
+//Configure AWS clients to use obtainded credentials
+IAmazonS3 client = awsOptions.CreateServiceClient<IAmazonS3>();
+builder.Services.AddDefaultAWSOptions(awsOptions);
+//Add AWS services
+builder.Services.AddAWSService<IAmazonS3>();
+builder.Services.AddAWSService<IAmazonSQS>();
 
 var app = builder.Build();
 

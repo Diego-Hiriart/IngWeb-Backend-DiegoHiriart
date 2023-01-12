@@ -45,6 +45,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                             cmd.Parameters.AddWithValue("@2", profile.Lastname);
                             cmd.Parameters.AddWithValue("@3", profile.Bio);
                             cmd.Parameters.AddWithValue("@4", profile.IsAdmin);
+                            cmd.Parameters.AddWithValue("@5", profile.localAccount);
                             cmd.ExecuteNonQuery();
                         }
                     }
@@ -88,6 +89,7 @@ namespace WebAPI_DiegoHiriart.Controllers
                                     profile.Lastname = reader[2] as string;
                                     profile.Bio = reader[3] as string;
                                     profile.IsAdmin = reader.GetBoolean(4);
+                                    profile.localAccount = reader.GetBoolean(5);
                                     profiles.Add(profile);//Add user to list
                                 }
                             }

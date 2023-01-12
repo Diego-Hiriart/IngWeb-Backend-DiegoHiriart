@@ -6,14 +6,7 @@
         {
             this.Configuration = Configuration;
             this.Environment = Environment;
-            if (Environment.IsProduction())
-            {
-                this.DBConn = Configuration.GetConnectionString("Prod");
-            }
-            else if (Environment.IsDevelopment())
-            {
-                this.DBConn = Configuration.GetConnectionString("Dev");
-            }
+            this.DBConn = Configuration.GetConnectionString("MainDB");
         }
 
         public IConfiguration Configuration { set; get; }
