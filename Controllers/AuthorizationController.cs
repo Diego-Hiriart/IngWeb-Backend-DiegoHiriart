@@ -10,8 +10,6 @@ using System.Security.Cryptography;
 using System.Text;
 using WebAPI_DiegoHiriart.Models;
 using WebAPI_DiegoHiriart.Settings;
-using Microsoft.AspNetCore.Authentication;
-using Auth0.AspNetCore.Authentication;
 
 namespace WebAPI_DiegoHiriart.Controllers
 {

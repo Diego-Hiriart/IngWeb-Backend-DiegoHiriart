@@ -4,12 +4,12 @@ using System.Data;
 using System.Diagnostics;
 using WebAPI_DiegoHiriart.Settings;
 using WebAPI_DiegoHiriart.Models;
-using Amazon.KeyManagementService;
-using Amazon.Runtime;
-using AWS.EncryptionSDK;
-using AWS.EncryptionSDK.Core;
 using System.Text.Json;
 using System.Text;
+using Google.Cloud.Kms.V1;
+using Google.Protobuf;
+using System.Text.Json.Serialization;
+using Google.Apis.Auth.OAuth2;
 
 namespace WebAPI_DiegoHiriart.Controllers
 {
@@ -29,13 +29,13 @@ namespace WebAPI_DiegoHiriart.Controllers
         private readonly IWebHostEnvironment env;
         private string db;//Connection string
 
-        [HttpGet]
+        [HttpGet("get-encrypted-data")]
         public async Task<ActionResult<List<object>>> KMSEncrypt()
         {
-            List<object> encryptionResults = new List<object>();
-            //Get all models from database
-            List<Model> models = new List<Model>();
-            string readModels = "SELECT * FROM models";
+            byte[] ciphertextIssues;
+            //Get all issues from database
+            List<Issue> issues = new List<Issue>();
+            string getIssues = "SELECT * FROM issues";
             try
             {
                 using (NpgsqlConnection conn = new NpgsqlConnection(db))
@@ -45,20 +45,20 @@ namespace WebAPI_DiegoHiriart.Controllers
                     {
                         using (NpgsqlCommand cmd = conn.CreateCommand())
                         {
-                            cmd.CommandText = readModels;
+                            cmd.CommandText = getIssues;
                             using (NpgsqlDataReader reader = cmd.ExecuteReader())
                             {
                                 while (reader.Read())
                                 {
-                                    var model = new Model();
-                                    model.ModelId = reader.GetInt64(0);
+                                    var issue = new Issue();
+                                    issue.IssueId = reader.GetInt64(0);//Get int from the first column
                                     //Use castings so that nulls get created if needed
-                                    model.BrandId = reader.GetInt32(1);
-                                    model.ModelNumber = reader[2] as string;
-                                    model.Name = reader[3] as string;
-                                    model.Launch = reader.GetDateTime(4);
-                                    model.Discontinued = reader.GetBoolean(5);
-                                    models.Add(model);//Add model to list
+                                    issue.PostId = reader.GetInt64(1);
+                                    issue.ComponentId = reader.GetInt32(2);
+                                    issue.IssueDate = reader.GetDateTime(3);
+                                    issue.IsFixable = reader.GetBoolean(4);
+                                    issue.Description = reader[5] as string;
+                                    issues.Add(issue);
                                 }
                             }
                         }
@@ -73,60 +73,30 @@ namespace WebAPI_DiegoHiriart.Controllers
             }
             try
             {
-                //Encrypt models
-                IAwsEncryptionSdk encryptionSdk = AwsEncryptionSdkFactory.CreateDefaultAwsEncryptionSdk();
-                IAwsCryptographicMaterialProviders materialProviders = AwsCryptographicMaterialProvidersFactory.CreateDefaultAwsCryptographicMaterialProviders();
-                string keyArn = this.config.GetValue<string>("AWS:KeyARN");
-                //Instantiate keyring input object
-                //Create AWS credentials and region endpoint
-                var accessKey = this.config.GetValue<string>("AWS:AccessKeyId");
-                var secretKey = this.config.GetValue<string>("AWS:SecretAccessKey");
-                var credentials = new BasicAWSCredentials(accessKey, secretKey);
-                Amazon.RegionEndpoint regionEnpoint =  Amazon.RegionEndpoint.USEast1;
-                var kmsKeyringInput = new CreateAwsKmsKeyringInput
-                {
-                    KmsClient = new AmazonKeyManagementServiceClient(credentials, regionEnpoint),
-                    KmsKeyId = keyArn
-                };
-                //Create keyring
-                IKeyring keyring = materialProviders.CreateAwsKmsKeyring(kmsKeyringInput);
-                // Define the encryption context, necessary for cryptography
-                var encryptionContext = new Dictionary<string, string>(){
-                    {"purpose", "test"}
-                };
-                //Transform models list to JSON and then to memory stream
-                string modelsJSONString = JsonSerializer.Serialize(models);
-                MemoryStream modelsJSONStream = new MemoryStream(Encoding.ASCII.GetBytes(modelsJSONString));
-                //Create an EncrypInput class
-                EncryptInput encryptInput = new EncryptInput
-                {
-                    Plaintext = modelsJSONStream,
-                    Keyring = keyring,
-                    EncryptionContext = encryptionContext
-                };
-                //Encrypt
-                EncryptOutput encryptionOutput = encryptionSdk.Encrypt(encryptInput);
-                MemoryStream encryptedText = encryptionOutput.Ciphertext;
-                string encryptedString = Encoding.UTF8.GetString(encryptedText.ToArray());
-                encryptionResults.Add(encryptedString);
-                //Decrypt
-                var decryptInput = new DecryptInput
-                {
-                    Ciphertext = encryptedText,
-                    Keyring = keyring
-                };
-                DecryptOutput decryptOutput = encryptionSdk.Decrypt(decryptInput);
-                MemoryStream decryptedText = decryptOutput.Plaintext;
-                string decryptedJsonString = Encoding.ASCII.GetString(decryptedText.ToArray());
-                List<Model> decryptedModels = JsonSerializer.Deserialize<List<Model>>(decryptedJsonString);
-                encryptionResults.Add(decryptedModels);
-            }catch (Exception e)
+                //Create encryption cient
+                string projectId = this.config.GetValue<string>("Google:ProjectId");
+                string locationId = this.config.GetValue<string>("Google:LocationId");
+                string keyRingId = this.config.GetValue<string>("Google:KeyRingId");
+                string keyId = this.config.GetValue<string>("Google:KeyId");
+                KeyManagementServiceClient KMSClient = KeyManagementServiceClient.Create();
+                //Create key name
+                CryptoKeyName keyName = new CryptoKeyName(projectId, locationId, keyRingId, keyId);
+                //Convert retrieved issues into string
+                string issuesJSON = JsonSerializer.Serialize(issues);
+                //Convert content string into bytes to get encrypted
+                byte[] plaintextIssues = Encoding.UTF8.GetBytes(issuesJSON);
+                //Encrypt issues text calling the API
+                EncryptResponse encryptionResult = KMSClient.Encrypt(keyName, ByteString.CopyFrom(plaintextIssues));
+                //Convert result into cyphertext
+                ciphertextIssues = encryptionResult.Ciphertext.ToByteArray();
+            }
+            catch (Exception e)
             {
                 Debug.WriteLine(e.Message);
                 return StatusCode(500);
             }
-            //Return results of encryption and decryption
-            return Ok(encryptionResults);
+            //Return encrypted data
+            return Ok(ciphertextIssues);
         }
     }
 }

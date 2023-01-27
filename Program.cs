@@ -7,9 +7,6 @@ using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.Filters;
 using System.Text;
 using Microsoft.IdentityModel.Logging;
-using Amazon.Extensions.NETCore.Setup;
-using Amazon.S3;
-using Amazon.SQS;
 
 var frontEndOrigins = "frontEndOrigins";
 
@@ -59,16 +56,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = false
         };
     });
-
-//Set up AWS
-//Get profile info adn credentials
-var awsOptions = builder.Configuration.GetAWSOptions();
-//Configure AWS clients to use obtainded credentials
-IAmazonS3 client = awsOptions.CreateServiceClient<IAmazonS3>();
-builder.Services.AddDefaultAWSOptions(awsOptions);
-//Add AWS services
-builder.Services.AddAWSService<IAmazonS3>();
-builder.Services.AddAWSService<IAmazonSQS>();
 
 var app = builder.Build();
 
